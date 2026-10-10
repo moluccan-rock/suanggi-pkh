@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Suanggi PKH - Bukti Dukung Laporan Bulanan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="role-locked">
+
+<!-- Tombol Keluar mengambang: selalu terlihat di layar manapun (gerbang Pilih Jabatan, Step 2, Step 3),
+     tidak seperti topbar yang sengaja disembunyikan saat gerbang Pilih Jabatan aktif. -->
+<button id="btnLogoutFloating" type="button" class="btn-logout-floating" style="display:none;" title="Keluar dari aplikasi">
+  ⏻ Keluar
+</button>
+
+<!-- ===================== GERBANG LOGIN & PENDAFTARAN (NIP + TOKEN) ===================== -->
+<div id="loginGate" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+  <div class="login-photo-bg"></div>
+  <div class="login-photo-overlay"></div>
+  <div class="login-glass-card" style="padding:40px; border-radius:20px; width:100%; max-width:420px; text-align:center; margin:auto;">
+    <div class="brand-title-wrap" style="display:block; margin-bottom:14px;">
+      <h1 class="neon-red" style="font-family:'Rockwell','Roboto Slab',serif; font-size:40px; font-weight:bold; margin:0;">Suanggi</h1>
+      <div class="brand-row" style="display:flex; align-items:center; gap:0; justify-content:center; margin-top:2px;">
+        <span class="pkh-badge" style="font-size:30px;">PKH</span>
+        <div class="brand-caption" style="font-size:10px;">Bukti Dukung<br>Direktorat PSNK<br>Kementerian Sosial</div>
+      </div>
+    </div>
+
+    <!-- Memeriksa sesi tersimpan (auto-login) -->
+    <div id="loginLoading">
+      <div class="suanggi-loader">
+        <svg class="suanggi-loader-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <radialGradient id="suanggiCoreGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fff5e0"/>
+              <stop offset="40%" stop-color="#ff8a3d"/>
+              <stop offset="100%" stop-color="#ff2d2d" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle class="suanggi-orbit-ring" cx="50" cy="50" r="34"/>
+          <circle class="suanggi-core" cx="50" cy="50" r="12" fill="url(#suanggiCoreGrad)"/>
+          <g class="suanggi-orbit">
+            <circle class="suanggi-spark" cx="50" cy="16" r="3" fill="#ff5a36"/>
+          </g>
+          <g class="suanggi-orbit suanggi-orbit-2">
+            <circle class="suanggi-spark" cx="50" cy="20" r="2.6" fill="#ffb020"/>
+          </g>
+          <g class="suanggi-orbit suanggi-orbit-3">
+            <circle class="suanggi-spark" cx="50" cy="12" r="2.2" fill="#ffe27a"/>
+          </g>
+        </svg>
+        <p class="suanggi-loader-text">Memeriksa sesi login<span class="suanggi-dots"><span>.</span><span>.</span><span>.</span></span></p>
+      </div>
+    </div>
+
+    <!-- FORM 1: LOGIN dengan NIP + Token -->
+    <div id="loginForm" style="display:none; text-align:left;">
+      <p style="font-size:12px; color:#4b5563; margin:0 0 18px;">Masukkan NIP dan Kode Token yang telah dikirimkan Admin ke WhatsApp/Telegram/Email Anda.</p>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">NIP</label>
+        <input type="text" id="loginNip" inputmode="numeric" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Kode Token</label>
+        <input type="text" id="loginToken" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; text-transform:uppercase;">
+      </div>
+      <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
+      <p style="text-align:center; margin-top:16px; font-size:12px;">
+        Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a>
+      </p>
+    </div>
+
+    <!-- FORM 2: PENDAFTARAN (Nama + NIP + WA/Telegram) -->
+    <div id="registerForm" style="display:none; text-align:left;">
+      <p style="font-size:12px; color:#4b5563; margin:0 0 15px;">Isi data berikut. Admin akan memverifikasi pembayaran lalu mengaktifkan akses Anda sesuai jumlah hari yang diminta.</p>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Nama Lengkap (dengan gelar, opsional)</label>
+        <input type="text" id="regNama" placeholder="cth. Rizky Pratama, S.Tr.Sos" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">NIP *</label>
+        <input type="text" id="regNip" inputmode="numeric" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">No. WhatsApp/Telegram *</label>
+        <input type="text" id="regHp" placeholder="cth. 08123456789" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Jumlah Hari Akses yang Diminta * (maks. 7 hari)</label>
+        <input type="number" id="regHari" min="1" max="7" placeholder="cth. 7" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+        <p style="font-size:11px; color:#8590a0; margin:4px 0 0;">Akses aplikasi akan aktif selama jumlah hari ini sejak diaktifkan Admin, lalu otomatis keluar ke halaman login. Maksimal pengajuan 7 hari per permintaan.</p>
+      </div>
+      <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesRegistrasi()">Daftar</button>
+      <p style="text-align:center; margin-top:16px; font-size:12px;">
+        Sudah punya token? <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#7f1d1d; font-weight:600;">Masuk di sini</a>
+      </p>
+    </div>
+
+    <!-- Pesan setelah pendaftaran berhasil -->
+    <div id="registerSuccessBox" style="display:none; text-align:left;">
+      <p style="font-size:14px; color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0; padding:14px; border-radius:8px;">
+        ✅ Pendaftaran berhasil! Admin akan memverifikasi pembayaran dan mengaktifkan akses Anda. Simpan NIP Anda untuk login setelah token diaktifkan.
+      </p>
+      <button class="btn btn-outline" style="width:100%; justify-content:center; margin-top:10px;" onclick="tampilkanFormLogin()">Kembali ke Halaman Masuk</button>
+    </div>
+
+    <!-- Form pengajuan PERPANJANGAN token (muncul otomatis saat token kedaluwarsa) -->
+    <div id="perpanjanganForm" style="display:none; text-align:left;">
+      <p style="font-size:13px; color:#fde68a; font-weight:600; margin:0 0 6px;" id="perpanjanganTitle">Masa aktif akun Anda sudah berakhir.</p>
+      <p style="font-size:12px; color:rgba(255,255,255,.82); margin:0 0 15px;">Ajukan perpanjangan dengan mengisi jumlah hari akses yang Anda perlukan (maksimal 7 hari). Admin akan memverifikasi pembayaran lalu mengaktifkan kembali.</p>
+      <input type="hidden" id="perpanjanganNip">
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px;">Jumlah Hari Akses yang Diminta * (maks. 7 hari)</label>
+        <input type="number" id="perpanjanganHari" min="1" max="7" placeholder="cth. 7" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesAjukanPerpanjangan()">Ajukan Perpanjangan</button>
+      <p style="text-align:center; margin-top:16px; font-size:12px;">
+        <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#fde68a; font-weight:600;">Kembali ke Halaman Masuk</a>
+      </p>
+    </div>
+
+    <div id="loginError" style="display:none; color:red; margin-top:15px; font-size:12px;"></div>
+  </div>
+</div>
+
+<!-- ===================== STEP 1: GERBANG PEMILIHAN JABATAN ===================== -->
+<div class="role-gate" id="roleGate">
+  <div class="role-gate-card">
+    <div class="role-gate-hero">
+      <div class="role-gate-hero-content">
+        <div class="brand-title-wrap">
+          <h1 class="neon-red" style="font-family: 'Rockwell', 'Roboto Slab', serif; font-size: 50px; font-weight: bold; letter-spacing: 8px; white-space: nowrap;">Suanggi</h1>
+          <div class="brand-row">
+            <span class="pkh-badge neon-red">PKH</span>
+            <div class="brand-caption">Bukti Dukung<br>Direktorat PSNK<br>Kementerian Sosial</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="role-gate-body">
+      <p class="instr">Pilih Jabatan</p>
+      <div class="role-list" id="roleList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APLIKASI ===================== -->
+<div class="topbar">
+  <div class="topbar-title">
+    <div>
+      <div class="brand-title-wrap">
+        <h1 class="neon-red" style="font-family: 'Rockwell', 'Roboto Slab', serif; font-size: 50px; font-weight: bold; letter-spacing: 8px; white-space: nowrap;">Suanggi</h1>
+        <div class="brand-row">
+          <span class="pkh-badge neon-red">PKH</span>
+          <div class="brand-caption">Bukti Dukung<br>Direktorat PSNK<br>Kementerian Sosial</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <!-- Kolom 1: "Jabatan" di atas, "Sisa Akses" tepat di bawahnya -->
+    <div class="topbar-actions-col">
+      <span class="role-badge">Jabatan: <b id="roleBadgeName">-</b></span>
+      <span id="creditBadge" class="credit-badge" style="display:none;">⏳ Sisa Akses: -</span>
+    </div>
+    <!-- Kolom 2: "Ganti Jabatan" di atas, "Ganti RHK" tepat di bawahnya -->
+    <div class="jabatan-actions-col">
+      <button class="btn btn-ghost" id="btnChangeRole" type="button">Ganti Jabatan</button>
+      <button class="btn btn-ghost btn-change-rhk" id="btnChangeRhk" type="button">Ganti RHK</button>
+    </div>
+    <!-- Kolom 3: "Lanjut ke Edit Laporan" di atas, "Pratinjau & Simpan ke PDF"
+         tepat di bawahnya. Tombol sticky "Lanjut ke Edit Laporan" hanya tampil
+         selama Step 2, supaya tetap terlihat & bisa diklik walau halaman di-scroll. -->
+    <div class="topbar-actions-col">
+      <button class="btn btn-navy btn-to-step3-top" id="btnToStep3Top" type="button" disabled>Lanjut ke Edit Laporan &rarr;</button>
+      <button class="btn btn-gold" id="btnPrint" type="button">Pratinjau &amp; Simpan ke PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="steps" id="stepsBar"></div>
+
+<div class="wrap">
+
+  <!-- ===================== STEP 2: PILIH RHK & RENCANA AKSI ===================== -->
+  <div id="viewRhk">
+    <div class="group-head">
+      <span class="letter">2</span>
+      <h2>Pilih Rencana Hasil Kerja (RHK) &amp; Rencana Aksi<span class="hint">wajib hanya 1 RHK dan 1 rencana aksi yang dikerjakan bulan ini</span></h2>
+    </div>
+    <div id="rhkPickWrap"></div>
+    <div class="footer-nav">
+      <span></span>
+      <button class="btn btn-navy" id="btnToStep3" type="button" disabled>Lanjut ke Edit Laporan &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ===================== STEP 3: EDIT LAPORAN ===================== -->
+  <div id="viewEdit" style="display:none;">
+   <div class="split-layout">
+    <div class="edit-col">
+
+    <div class="group-head"><span class="letter">1</span><h2>Data Umum &amp; Kop Laporan</h2></div>
+    <div class="card"><div class="card-body">
+      <div class="grid2">
+        <div class="field"><label>Bulan Laporan</label>
+          <select id="f_bulan">
+            <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option>
+            <option>Mei</option><option>Juni</option><option>Juli</option><option selected>Agustus</option>
+            <option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
+          </select>
+        </div>
+        <div class="field"><label>Tahun</label><input type="text" id="f_tahun" value="2026"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Nama Lengkap<span class="hint">terkunci sesuai data pendaftaran</span></label><input type="text" id="f_nama" placeholder="Nama Pegawai PKH" readonly></div>
+        <div class="field"><label>NIP<span class="hint">terkunci sesuai data pendaftaran</span></label><input type="text" id="f_nip" placeholder="................................." readonly></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Lokasi Pembuatan Laporan</label><input type="text" id="f_lokasi" value="Ambon"></div>
+        <div class="field"><label>Tanggal Laporan</label><input type="date" id="f_tanggal"></div>
+      </div>
+      <div class="field">
+        <label>Tanda Tangan (opsional)<span class="hint">gambar JPG/PNG diletakkan di zona 4 spasi antara jabatan &amp; nama pada lembar TTD</span></label>
+        <div class="upload-drop" id="dropTtd">
+          <p>Klik atau seret gambar tanda tangan (JPG) ke sini</p>
+          <input type="file" id="f_ttd" accept="image/*" style="display:none;">
+        </div>
+        <div class="kop-preview" id="ttdPreviewBox" style="display:none;">
+          <img id="ttdPreviewImg" src="" alt="Preview TTD">
+          <div class="meta"><b id="ttdFileName"></b><span id="ttdFileSize"></span></div>
+          <button class="btn btn-outline doc-remove" id="btnRemoveTtd" type="button">Hapus</button>
+        </div>
+        <div id="ttdSizeBox" style="display:none;margin-top:10px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Ukuran Tanda Tangan</span><span id="ttdSizeLabel" style="font-weight:400;color:var(--ink-400);"></span>
+          </label>
+          <input type="range" id="f_ttdSize" min="40" max="260" step="2" style="width:100%;accent-color:var(--steel-500);">
+          <button class="btn btn-outline" id="btnResetTtdPos" type="button" style="margin-top:8px;width:100%;">Reset Posisi</button>
+          <p style="font-size:11px;color:var(--ink-400);margin:4px 0 0;">Seret badan tanda tangan langsung pada lembar pratinjau di sebelah kanan untuk memindah posisinya, atau seret titik biru di pojoknya untuk memperbesar/memperkecil.</p>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">A</span><h2>Pendahuluan<span class="hint">Latar Belakang, Maksud &amp; Tujuan, dan Ruang Lingkup terisi otomatis berdasarkan RHK terpilih &mdash; dapat diedit</span></h2></div>
+    <div class="card"><div class="card-body">
+      <div style="margin-bottom:14px;">
+        <button type="button" class="btn-ai-generate" id="btnRefreshPendahuluan">&#8635; Perbarui Otomatis dari RHK</button>
+        <span class="ai-gen-status" id="pendahuluanStatus"></span>
+      </div>
+      <div class="field"><label>Latar Belakang / Gambaran Umum</label>
+        <textarea id="f_umum" rows="4" placeholder="Terisi otomatis setelah RHK dipilih pada langkah 2."></textarea>
+      </div>
+      <div class="field"><label>Maksud dan Tujuan</label>
+        <textarea id="f_maksud" rows="4" placeholder="Terisi otomatis setelah RHK dipilih pada langkah 2."></textarea>
+      </div>
+      <div class="field"><label>Ruang Lingkup</label>
+        <textarea id="f_ruang" rows="4" placeholder="Terisi otomatis setelah RHK dipilih pada langkah 2."></textarea>
+      </div>
+      <div class="field"><label>Dasar Hukum</label>
+        <div id="dasarWrap"></div>
+        <button class="add-line" id="btnAddDasar" type="button">+ Tambah Dasar Hukum</button>
+      </div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">B</span><h2>Kegiatan yang Dilaksanakan<span class="hint">otomatis digenerate langsung berdasarkan RHK &amp; rencana aksi terpilih pada langkah 2 &mdash; dapat diedit/ditambahkan</span></h2></div>
+    <div class="card"><div class="card-body">
+      <div class="rhk-summary" id="bSummaryBox">
+        <div class="lbl">Rencana Hasil Kerja (RHK) Terpilih</div>
+        <div class="val" id="bRhkVal">-</div>
+        <div class="lbl">Rencana Aksi yang Dikerjakan</div>
+        <div class="aksi-val" id="bAksiVal">-</div>
+        <div style="margin-top:10px;">
+          <button type="button" class="btn-ai-generate" id="btnRefreshKegiatan">&#8635; Perbarui Otomatis dari RHK (B, C, D &amp; E)</button>
+          <span class="ai-gen-status" id="kegiatanStatus"></span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Uraian Pelaksanaan / Realisasi Kegiatan</label>
+        <div style="margin-bottom:8px;">
+          <button type="button" class="btn-ai-generate" id="btnGenB">&#10024; Sempurnakan dengan AI (opsional)</button>
+          <span class="ai-gen-status" id="bAiStatus"></span>
+        </div>
+        <textarea id="f_bUraian" rows="6" placeholder="Terisi otomatis begitu RHK &amp; rencana aksi dipilih pada langkah 2. Silakan edit atau tambahkan sesuai kebutuhan."></textarea>
+      </div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">C</span><h2>Hasil yang Dicapai<span class="hint">terisi otomatis dari RHK terpilih &mdash; dapat diedit/ditambahkan</span></h2></div>
+    <div class="card"><div class="card-body">
+      <div class="field">
+        <label>Capaian / Hasil</label>
+        <textarea id="f_hasil" rows="5" placeholder="Terisi otomatis begitu RHK &amp; rencana aksi dipilih. Lengkapi dengan angka/persentase riil (mis. jumlah KPM) sesuai kebutuhan."></textarea>
+      </div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">D</span><h2>Kesimpulan dan Saran<span class="hint">terisi otomatis dari RHK terpilih &mdash; dapat diedit/ditambahkan</span></h2></div>
+    <div class="card"><div class="card-body">
+      <div class="field">
+        <label>Kesimpulan &amp; Saran</label>
+        <textarea id="f_kesimpulan" rows="4" placeholder="Kesimpulan terisi otomatis. Silakan edit."></textarea>
+        <textarea id="f_saran" rows="4" style="margin-top:8px;" placeholder="Saran terisi otomatis. Silakan edit."></textarea>
+      </div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">E</span><h2>Penutup<span class="hint">terisi otomatis &mdash; dapat diedit/ditambahkan</span></h2></div>
+    <div class="card"><div class="card-body">
+      <div class="field">
+        <textarea id="f_penutup" rows="4" placeholder="Terisi otomatis. Silakan edit."></textarea>
+      </div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">&#128247;</span><h2>Dokumentasi Kegiatan</h2></div>
+    <div class="card"><div class="card-body">
+      <div class="upload-drop" id="dropDok">
+        <p>Klik atau seret foto dokumentasi kegiatan ke sini (bisa banyak)</p>
+        <p style="margin-top:2px;font-size:10px;color:var(--ink-400);">Format didukung: JPG, JPEG, PNG, WEBP, serta HEIC/HEIF (foto iPhone/iPad) — otomatis dikonversi</p>
+        <input type="file" id="f_dok" accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif" multiple style="display:none;">
+      </div>
+      <div class="doc-grid-form" id="dokGrid"></div>
+    </div></div>
+
+    <div class="group-head"><span class="letter">&#128206;</span><h2>Lampiran Lainnya</h2></div>
+    <div class="card"><div class="card-body">
+      <div class="upload-drop" id="dropLamp">
+        <p>Klik atau seret file lampiran (PDF/gambar) ke sini</p>
+        <input type="file" id="f_lamp" accept="application/pdf,image/*" multiple style="display:none;">
+      </div>
+      <div class="lamp-list" id="lampList"></div>
+    </div></div>
+
+    <div class="footer-nav">
+      <button class="btn btn-outline" id="btnBackStep2" type="button">&larr; Kembali ke Pilih RHK</button>
+      <button class="btn btn-gold" id="btnPrint2" type="button">Pratinjau &amp; Simpan ke PDF</button>
+    </div>
+
+    </div>
+
+    <div class="preview-col">
+      <div class="preview-wrap">
+        <div class="group-head"><span class="letter">&#128065;</span><h2>Pratinjau Laporan</h2></div>
+        <div class="print-area" id="paper"></div>
+      </div>
+    </div>
+
+   </div>
+  </div>
+
+</div>
+
+<!-- ===================== MODAL: PRATINJAU SEBELUM UNDUH PDF ===================== -->
+<div class="preview-modal-overlay" id="previewModalOverlay">
+  <div class="preview-modal">
+    <div class="preview-modal-head">
+      <div>
+        <h2>Pratinjau Lembar Kerja Laporan</h2>
+        <p>Periksa seluruh halaman A4 di bawah ini sebelum menyimpan / mengunduh PDF.</p>
+      </div>
+      <button class="btn btn-ghost" id="btnClosePreviewModal" type="button">&times; Tutup</button>
+    </div>
+    <div class="preview-modal-body" id="previewModalBody"></div>
+    <div class="preview-modal-foot">
+      <button class="btn btn-outline" id="btnCancelPreviewModal" type="button">Kembali ke Edit</button>
+      <button class="btn btn-outline" id="btnPrintFallback" type="button" title="Membuka dialog Cetak bawaan browser. Pada dialog tersebut pilih tujuan &quot;Simpan sebagai PDF&quot;. Cara ini tidak memerlukan koneksi internet.">Cetak (Mode Browser)</button>
+      <button class="btn btn-gold" id="btnConfirmDownloadPdf" type="button">Unduh PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL PAYWALL / KREDIT HABIS (BARU) ===================== -->
+<div class="paywall-overlay" id="paywallOverlay" style="display:none;">
+  <div class="paywall-modal">
+    <div class="paywall-header">
+      <h3>✨ Kuota AI Gratis Anda Habis</h3>
+      <p>Nikmati laporan yang lebih profesional dan hemat waktu dengan AI.</p>
+    </div>
+    <div class="paywall-body">
+      <div class="pricing-card">
+        <div class="price">Rp 15.000</div>
+        <div class="features">
+          <span>10x Penggunaan "Sempurnakan AI"</span>
+          <span>Prioritas Support via WhatsApp</span>
+          <span>Akses Selamanya (Tidak Kadaluarsa)</span>
+        </div>
+      </div>
+      <div class="payment-method">
+        <p>Scan QRIS atau Transfer ke:</p>
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><rect width='150' height='150' fill='%23eeeeee'/><text x='75' y='70' font-family='Arial' font-size='14' text-anchor='middle' fill='%23666666'>QRIS</text><text x='75' y='92' font-family='Arial' font-size='11' text-anchor='middle' fill='%23666666'>Tempel gambar QRIS Anda</text></svg>" alt="QRIS" style="width:150px;border-radius:8px;border:1px solid #ddd;">
+        <p style="font-size:12px;color:var(--ink-400);margin-top:8px;">Bank BCA: 1234567890 a.n Nama Anda</p>
+      </div>
+      <a href="https://wa.me/6281234567890?text=Halo%20Admin%20Suanggi%20PKH,%20saya%20mau%20top%20up%20kredit%20AI." id="waLink" target="_blank" class="btn btn-gold" style="width:100%;justify-content:center;margin-top:16px;text-decoration:none;">Konfirmasi Pembayaran via WhatsApp</a>
+    </div>
+    <button class="btn btn-ghost" onclick="document.getElementById('paywallOverlay').style.display='none'" style="margin-top:12px;width:100%;">Tutup</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
