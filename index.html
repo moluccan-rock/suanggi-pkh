@@ -227,13 +227,22 @@
       <div class="field">
         <label>Tanda Tangan (opsional)<span class="hint">gambar JPG/PNG diletakkan di zona 4 spasi antara jabatan &amp; nama pada lembar TTD</span></label>
         <div class="upload-drop" id="dropTtd">
-          <p>Klik atau seret gambar tanda tangan (JPG) ke sini</p>
+          <p>Klik atau seret foto/scan tanda tangan (JPG/PNG) ke sini &mdash; latar putih dihapus otomatis</p>
           <input type="file" id="f_ttd" accept="image/*" style="display:none;">
         </div>
+        <button class="btn btn-outline" id="btnDrawTtd" type="button" style="margin-top:8px;width:100%;">&#9997; Atau gambar tanda tangan langsung di layar</button>
         <div class="kop-preview" id="ttdPreviewBox" style="display:none;">
-          <img id="ttdPreviewImg" src="" alt="Preview TTD">
+          <img id="ttdPreviewImg" class="ttd-checker" src="" alt="Preview TTD">
           <div class="meta"><b id="ttdFileName"></b><span id="ttdFileSize"></span></div>
           <button class="btn btn-outline doc-remove" id="btnRemoveTtd" type="button">Hapus</button>
+        </div>
+        <div id="ttdBgBox" style="display:none;margin-top:10px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Kekuatan Hapus Latar</span><span id="ttdBgLabel" style="font-weight:400;color:var(--ink-400);"></span>
+          </label>
+          <input type="range" id="f_ttdBg" min="0" max="100" step="1" value="35" style="width:100%;accent-color:var(--steel-500);">
+          <p style="font-size:11px;color:var(--ink-400);margin:4px 0 0;">Geser ke kanan jika masih ada bayangan/noda di sekitar tanda tangan. Geser ke kiri jika goresan tipis ikut hilang. Kotak-kotak pada pratinjau menandakan bagian yang transparan.</p>
+          <button class="btn btn-outline" id="btnTtdOriginal" type="button" style="margin-top:8px;width:100%;">Pakai gambar asli (tanpa hapus latar)</button>
         </div>
         <div id="ttdSizeBox" style="display:none;margin-top:10px;">
           <label style="display:flex;align-items:center;justify-content:space-between;">
@@ -349,6 +358,32 @@
    </div>
   </div>
 
+</div>
+
+<!-- ===================== MODAL: GAMBAR TANDA TANGAN LANGSUNG ===================== -->
+<div class="ttd-pad-overlay" id="ttdPadOverlay">
+  <div class="ttd-pad-modal">
+    <h3>Gambar Tanda Tangan</h3>
+    <p>Gambar dengan jari atau mouse pada kotak di bawah. Latar otomatis transparan.</p>
+    <div class="ttd-pad-wrap"><canvas id="ttdPadCanvas" width="1200" height="480"></canvas><span class="ttd-pad-guide">tanda tangan di sini</span></div>
+    <div class="ttd-pad-tools">
+      <label>Warna
+        <span class="ttd-pad-colors" id="ttdPadColors">
+          <button type="button" class="ttd-pad-swatch active" data-color="#111111" style="background:#111111" title="Hitam"></button>
+          <button type="button" class="ttd-pad-swatch" data-color="#1b2a8f" style="background:#1b2a8f" title="Biru tua"></button>
+          <button type="button" class="ttd-pad-swatch" data-color="#0b5cad" style="background:#0b5cad" title="Biru"></button>
+        </span>
+      </label>
+      <label>Tebal <input type="range" id="ttdPadWidth" min="2" max="14" step="1" value="5"></label>
+    </div>
+    <div class="ttd-pad-actions">
+      <button class="btn btn-outline" id="ttdPadUndo" type="button">&#8630; Urungkan</button>
+      <button class="btn btn-outline" id="ttdPadClear" type="button">Hapus Semua</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-outline" id="ttdPadCancel" type="button">Batal</button>
+      <button class="btn btn-gold" id="ttdPadSave" type="button">Pakai Tanda Tangan</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===================== MODAL: PRATINJAU SEBELUM UNDUH PDF ===================== -->

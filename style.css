@@ -433,13 +433,37 @@
      di bawahnya tidak ikut bergeser, gambar hanya melebar menimpa (overlap) teks di atas/bawahnya.
      mix-blend-mode:multiply membuat latar putih pada foto/scan tanda tangan melebur transparan
      ke kertas, sehingga tulisan yang tertimpa tetap terbaca. */
-  .ttd-zone{height:46px;overflow:visible;position:relative;margin:0;}
-  .ttd-resizable{position:absolute;left:50%;bottom:0;transform:translateX(-50%);line-height:0;z-index:5;mix-blend-mode:multiply;cursor:move;}
-  .ttd-resizable img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;mix-blend-mode:multiply;}
+  /* PEMBARUAN: tanda tangan kini benar-benar "Behind Text". Gambar TTD adalah PNG transparan
+     (latar dihapus saat diunggah/digambar), diletakkan di lapisan BAWAH (z-index 1) sedangkan
+     teks lokasi/jabatan/nama/NIP berada di lapisan ATAS (z-index 2). Trik mix-blend-mode dihapus
+     karena html2canvas (pembuat PDF) tidak mendukungnya -- PNG transparan sudah cukup & konsisten
+     di pratinjau, PDF, maupun mode cetak browser. */
+  .ttd-zone{height:46px;overflow:visible;position:relative;margin:0;z-index:0;}
+  .ttd-resizable{position:absolute;left:50%;bottom:0;transform:translateX(-50%);line-height:0;z-index:1;cursor:move;}
+  .ttd-resizable img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+  .sign-box > div:not(.ttd-zone){position:relative;z-index:2;pointer-events:none;}
   .ttd-resize-handle{position:absolute;right:-7px;bottom:-7px;width:15px;height:15px;background:var(--steel-500);border:2px solid #fff;border-radius:50%;cursor:nwse-resize;box-shadow:0 1px 4px rgba(0,0,0,.35);z-index:6;}
   .ttd-resize-handle:hover{background:var(--navy-800);}
   .ttd-hint{position:absolute;left:50%;transform:translateX(-50%);top:-16px;font-family:'Inter',sans-serif;font-size:9px;color:var(--steel-500);white-space:nowrap;background:#fff;padding:0 4px;pointer-events:none;}
   .sign-box .nama{font-weight:700;text-decoration:underline;margin-top:2px;}
+  /* Pratinjau TTD di panel kiri: latar kotak-kotak agar bagian transparan terlihat jelas */
+  #ttdPreviewImg.ttd-checker{background-color:#fff;background-image:linear-gradient(45deg,#d9dee5 25%,transparent 25%),linear-gradient(-45deg,#d9dee5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d9dee5 75%),linear-gradient(-45deg,transparent 75%,#d9dee5 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;}
+  /* Modal gambar tanda tangan langsung */
+  .ttd-pad-overlay{display:none;position:fixed;inset:0;background:rgba(16,29,51,.72);z-index:300;padding:16px;overflow-y:auto;align-items:center;justify-content:center;}
+  .ttd-pad-overlay.open{display:flex;}
+  .ttd-pad-modal{background:#fff;border-radius:14px;padding:18px;width:100%;max-width:640px;box-shadow:0 20px 50px rgba(0,0,0,.35);margin:auto;}
+  .ttd-pad-modal h3{margin:0 0 4px;font-size:16px;}
+  .ttd-pad-modal p{margin:0 0 10px;font-size:12px;color:var(--ink-400);}
+  .ttd-pad-wrap{position:relative;border:1.5px dashed var(--slate-200);border-radius:10px;overflow:hidden;background-color:#fff;background-image:linear-gradient(45deg,#eef1f5 25%,transparent 25%),linear-gradient(-45deg,#eef1f5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eef1f5 75%),linear-gradient(-45deg,transparent 75%,#eef1f5 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;}
+  .ttd-pad-wrap canvas{display:block;width:100%;height:auto;aspect-ratio:5/2;touch-action:none;cursor:crosshair;}
+  .ttd-pad-guide{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:10px;color:#a8b2c0;pointer-events:none;}
+  .ttd-pad-guide::before{content:"";display:block;margin:0 24px 4px;border-top:1px solid #c9d1dc;}
+  .ttd-pad-tools{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:12px 0;font-size:12px;color:var(--ink-600);}
+  .ttd-pad-tools label{display:flex;align-items:center;gap:8px;}
+  .ttd-pad-colors{display:inline-flex;gap:6px;}
+  .ttd-pad-swatch{width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #c9d1dc;cursor:pointer;padding:0;}
+  .ttd-pad-swatch.active{box-shadow:0 0 0 2px var(--steel-500);}
+  .ttd-pad-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
   /* Dokumentasi: setiap foto ditampilkan dalam bingkai 5.48in x 3.5in, rata tengah, 1 kolom
      agar ukuran presisi. PENTING: memakai object-fit:contain (bukan cover) supaya foto JPG
      apa pun orientasinya (potret/lanskap, dari kamera HP sekalipun) SELALU tampil UTUH & PENUH

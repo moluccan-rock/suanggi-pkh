@@ -2,7 +2,7 @@
 // KONFIGURASI
 // ============================================
 // GANTI dengan URL /exec hasil deploy Kode.gs sebagai Web App.
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzMrFmI42amIs7kpqb5qxf3mgERlHS68IqR7iOUK_eacJtH29SV2A-jLqMpWXcqm6MiVg/exec';
+const GAS_URL = 'PASTE_URL_WEB_APP_ANDA_DI_SINI';
 
 async function panggilAPI(action, data) {
   try {
@@ -425,6 +425,7 @@ function handleLogout(otomatis){
   });
   var ttdBox = document.getElementById('ttdPreviewBox'); if(ttdBox) ttdBox.style.display = 'none';
   var ttdSizeBox = document.getElementById('ttdSizeBox'); if(ttdSizeBox) ttdSizeBox.style.display = 'none';
+  if(typeof ttdResetSemua === 'function') ttdResetSemua(); // lupakan foto TTD sumber & sembunyikan panel hapus latar
   var dropTtd = document.getElementById('dropTtd'); if(dropTtd) dropTtd.style.display = '';
   document.querySelectorAll('input[type="file"]').forEach(function(inp){ inp.value = ''; });
   var roleBadge = document.getElementById('roleBadgeName'); if(roleBadge) roleBadge.textContent = '-';
@@ -702,27 +703,291 @@ return (b/1024/1024).toFixed(1)+' MB';
 const dropTtd = document.getElementById('dropTtd');
 const f_ttd = document.getElementById('f_ttd');
 const f_ttdSize = document.getElementById('f_ttdSize');
-const TTD_DEFAULT_MAX_W = 130;
+const TTD_DEFAULT_MAX_W = 130;   // lebar bawaan TTD di lembar (px)
+const TTD_GAMBAR_W = 150;        // lebar bawaan untuk TTD yang digambar langsung
+const TTD_MAX_PX = 800;          // sisi terpanjang gambar TTD disimpan maksimal segini (hemat memori & ukuran PDF)
+const TTD_BG_DEFAULT = 35;       // kekuatan hapus latar bawaan (0-100)
+
+// @@TTD_PURE_START
+/* ---------- Pemrosesan gambar TTD: hapus latar -> PNG transparan (dikerjakan di browser) ---------- */
+/* Kecilkan gambar ke kanvas dengan sisi terpanjang <= maxPx (tidak pernah diperbesar). */
+function ttdBuatKanvas(img, maxPx){
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+  const sk = Math.min(1, maxPx / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * sk)), h = Math.max(1, Math.round(h0 * sk));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return c;
+}
+/* Apakah gambar ini sudah punya bagian transparan (mis. PNG hasil edit)? */
+function ttdSudahTransparan(kanvas){
+  const d = kanvas.getContext('2d').getImageData(0, 0, kanvas.width, kanvas.height).data;
+  let n = 0;
+  for(let p = 3; p < d.length; p += 4){ if(d[p] < 250) n++; }
+  return n > (d.length / 4) * 0.005;
+}
+/* Potong kanvas ke kotak terkecil yang memuat piksel tak-transparan (+ padding). null jika kosong. */
+function ttdPotongKotak(kanvas, pad){
+  const w = kanvas.width, h = kanvas.height;
+  const d = kanvas.getContext('2d').getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for(let y = 0; y < h; y++){
+    for(let x = 0, p = (y * w) * 4 + 3; x < w; x++, p += 4){
+      if(d[p] > 10){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+    }
+  }
+  if(x1 < 0) return null;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const c = document.createElement('canvas');
+  c.width = x1 - x0 + 1; c.height = y1 - y0 + 1;
+  c.getContext('2d').drawImage(kanvas, x0, y0, c.width, c.height, 0, 0, c.width, c.height);
+  return c;
+}
+/* Hapus latar kertas dari foto/scan tanda tangan.
+   1) Warna kertas diperkirakan PER WILAYAH (grid, persentil 85 tiap kanal) -> bayangan & cahaya
+      tidak merata tidak ikut dianggap tinta.
+   2) Seberapa lebih gelap sebuah piksel dibanding kertas di sekitarnya => alpha (transparansi) halus.
+   3) Warna tinta dikembalikan ke warna aslinya (un-blend terhadap kertas) agar tepi tidak berhalo putih.
+   kekuatan 0-100: makin besar makin agresif membuang latar/bayangan. Mengembalikan kanvas (sudah dipotong rapat) atau null jika kosong. */
+function ttdHapusLatar(src, kekuatan){
+  const w = src.width, h = src.height;
+  const d = src.getContext('2d').getImageData(0, 0, w, h).data;
+  const GX = Math.max(2, Math.min(16, Math.round(w / 40))), GY = Math.max(2, Math.min(16, Math.round(h / 40)));
+  const bg = new Float32Array(GX * GY * 3);
+  const hist = new Uint32Array(256);
+  for(let gy = 0; gy < GY; gy++){
+    const y0 = Math.floor(gy * h / GY), y1 = Math.floor((gy + 1) * h / GY);
+    for(let gx = 0; gx < GX; gx++){
+      const x0 = Math.floor(gx * w / GX), x1 = Math.floor((gx + 1) * w / GX);
+      const total = Math.max(1, (x1 - x0) * (y1 - y0));
+      for(let c = 0; c < 3; c++){
+        hist.fill(0);
+        for(let y = y0; y < y1; y++){
+          let p = (y * w + x0) * 4 + c;
+          for(let x = x0; x < x1; x++, p += 4) hist[d[p]]++;
+        }
+        const target = total * 0.85; let acc = 0, v = 255;
+        for(let i = 0; i < 256; i++){ acc += hist[i]; if(acc >= target){ v = i; break; } }
+        bg[(gy * GX + gx) * 3 + c] = v;
+      }
+    }
+  }
+  // bobot interpolasi bilinear antar pusat sel (dihitung sekali per kolom/baris)
+  const xi0 = new Int32Array(w), xi1 = new Int32Array(w), xt = new Float32Array(w);
+  for(let x = 0; x < w; x++){
+    const f = (x + 0.5) * GX / w - 0.5, a = Math.max(0, Math.min(GX - 1, Math.floor(f)));
+    xi0[x] = a; xi1[x] = Math.min(GX - 1, a + 1); xt[x] = Math.max(0, Math.min(1, f - a));
+  }
+  const out = document.createElement('canvas'); out.width = w; out.height = h;
+  const octx = out.getContext('2d');
+  const img = octx.createImageData(w, h), o = img.data;
+  const t0 = 0.04 + (Math.max(0, Math.min(100, kekuatan)) / 100) * 0.30; // lebih terang dari ini => latar penuh
+  const t1 = t0 + 0.20;                                                     // lebih gelap dari ini => tinta penuh
+  const bgc = [0, 0, 0];
+  for(let y = 0; y < h; y++){
+    const f = (y + 0.5) * GY / h - 0.5, ya = Math.max(0, Math.min(GY - 1, Math.floor(f)));
+    const yb = Math.min(GY - 1, ya + 1), yt = Math.max(0, Math.min(1, f - ya));
+    for(let x = 0; x < w; x++){
+      const p = (y * w + x) * 4;
+      for(let c = 0; c < 3; c++){
+        const a00 = bg[(ya * GX + xi0[x]) * 3 + c], a01 = bg[(ya * GX + xi1[x]) * 3 + c];
+        const a10 = bg[(yb * GX + xi0[x]) * 3 + c], a11 = bg[(yb * GX + xi1[x]) * 3 + c];
+        const tx = xt[x];
+        bgc[c] = (a00 + (a01 - a00) * tx) * (1 - yt) + (a10 + (a11 - a10) * tx) * yt;
+      }
+      const R = d[p], G = d[p + 1], B = d[p + 2];
+      const L = 0.299 * R + 0.587 * G + 0.114 * B;
+      const Lb = 0.299 * bgc[0] + 0.587 * bgc[1] + 0.114 * bgc[2];
+      let dark = Lb > 20 ? (Lb - L) / Lb : 0;
+      let al = (dark - t0) / (t1 - t0);
+      if(al <= 0.004){ o[p + 3] = 0; continue; }
+      if(al > 1) al = 1;
+      al = al * al * (3 - 2 * al);                    // smoothstep: tepi goresan halus
+      const den = Math.max(al, 0.25);
+      const ch = [R, G, B];
+      for(let c = 0; c < 3; c++){
+        let v = (ch[c] - bgc[c] * (1 - al)) / den;      // warna tinta asli (un-blend dari kertas)
+        o[p + c] = v < 0 ? 0 : (v > 255 ? 255 : v);
+      }
+      o[p + 3] = Math.round(al * 255);
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  return ttdPotongKotak(out, 3);
+}
+// @@TTD_PURE_END
+
+/* Zoom pratinjau lembar (CSS zoom/scale) -- dipakai agar geser & ubah-ukuran TTD mengikuti kursor/jari 1:1. */
+function getPreviewZoom(){
+  const a = document.getElementById('paper');
+  if(!a) return 1;
+  const z = parseFloat(a.style.zoom);
+  if(z > 0) return z;
+  const m = /scale\(([\d.]+)\)/.exec(a.style.transform || '');
+  return m ? (parseFloat(m[1]) || 1) : 1;
+}
+
+let ttdOrig = null; // {kanvas, sudahTransparan, name} -- sumber foto TTD agar slider bisa memproses ulang
+function ttdUkuranByte(url){
+  const i = url.indexOf(',');
+  return Math.round((url.length - (i + 1)) * 3 / 4);
+}
+function ttdResetSemua(){
+  ttdOrig = null;
+  const bgBox = document.getElementById('ttdBgBox'); if(bgBox) bgBox.style.display = 'none';
+}
+/* Proses ulang foto TTD lalu pasang ke state. kekuatan: angka 0-100 = hapus latar otomatis,
+   null = pakai gambar asli apa adanya (latar putih ikut tercetak). */
+function ttdTerapkan(kekuatan, awal){
+  if(!ttdOrig) return;
+  let kanvas, mode, url;
+  if(ttdOrig.sudahTransparan){
+    kanvas = ttdPotongKotak(ttdOrig.kanvas, 3) || ttdOrig.kanvas; mode = 'transparan';
+    url = kanvas.toDataURL('image/png');
+  } else if(kekuatan === null){
+    kanvas = ttdOrig.kanvas; mode = 'asli';
+    url = kanvas.toDataURL('image/jpeg', 0.92);
+  } else {
+    kanvas = ttdHapusLatar(ttdOrig.kanvas, kekuatan); mode = 'auto';
+    if(!kanvas){
+      const st = document.getElementById('ttdBgLabel');
+      if(st) st.textContent = 'hasil kosong — kurangi kekuatan';
+      return;
+    }
+    url = kanvas.toDataURL('image/png');
+  }
+  const prev = state.ttd;
+  const width = (awal || !prev) ? Math.min(TTD_DEFAULT_MAX_W, kanvas.width) : prev.width;
+  const height = Math.max(1, Math.round(width * kanvas.height / kanvas.width));
+  state.ttd = {name: ttdOrig.name, size: ttdUkuranByte(url), url, width, height,
+               offsetX: prev ? prev.offsetX : 0, offsetY: prev ? prev.offsetY : 0,
+               mode, kekuatan: (mode === 'auto' ? kekuatan : (prev ? prev.kekuatan : TTD_BG_DEFAULT))};
+  renderTtd(); renderPreview();
+}
+async function ttdMuatFile(file){
+  if(!file) return;
+  const url = await fileToDataUrl(file);
+  const img = await new Promise((resolve)=>{
+    const im = new Image();
+    im.onload = ()=> resolve(im);
+    im.onerror = ()=> resolve(null);
+    im.src = url;
+  });
+  if(!img){ alert('Gambar tidak dapat dibaca. Gunakan file JPG atau PNG.'); return; }
+  const kanvas = ttdBuatKanvas(img, TTD_MAX_PX);
+  ttdOrig = {kanvas, sudahTransparan: ttdSudahTransparan(kanvas), name: file.name};
+  state.ttd = null; // foto baru: posisi & ukuran dimulai dari bawaan
+  ttdTerapkan(TTD_BG_DEFAULT, true);
+}
 dropTtd.addEventListener('click', ()=> f_ttd.click());
+dropTtd.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+dropTtd.addEventListener('drop', (e)=>{
+  e.preventDefault();
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f) ttdMuatFile(f);
+});
 f_ttd.addEventListener('change', async ()=>{
-const file = f_ttd.files[0];
-if(!file) return;
-const url = await fileToDataUrl(file);
-const dims = await new Promise((resolve)=>{
-const img = new Image();
-img.onload = ()=> resolve({w:img.naturalWidth||200, h:img.naturalHeight||80});
-img.onerror = ()=> resolve({w:200, h:80});
-img.src = url;
+  const file = f_ttd.files[0];
+  await ttdMuatFile(file);
+  f_ttd.value = '';
 });
-const ratio = dims.h / dims.w;
-const width = Math.min(TTD_DEFAULT_MAX_W, dims.w);
-const height = Math.round(width * ratio);
-state.ttd = {name:file.name, size:file.size, url, width, height, offsetX:0, offsetY:0};
-renderTtd(); renderPreview();
-});
+(function(){
+  const slider = document.getElementById('f_ttdBg');
+  const btnAsli = document.getElementById('btnTtdOriginal');
+  let timer = null;
+  slider.addEventListener('input', ()=>{
+    document.getElementById('ttdBgLabel').textContent = slider.value + '%';
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ if(ttdOrig && state.ttd && state.ttd.mode !== 'asli') ttdTerapkan(parseInt(slider.value, 10), false); }, 90);
+  });
+  btnAsli.addEventListener('click', ()=>{
+    if(!ttdOrig || !state.ttd) return;
+    if(state.ttd.mode === 'asli') ttdTerapkan(parseInt(slider.value, 10), false);
+    else ttdTerapkan(null, false);
+  });
+})();
 document.getElementById('btnRemoveTtd').addEventListener('click', ()=>{
-state.ttd = null; f_ttd.value=''; renderTtd(); renderPreview();
+state.ttd = null; ttdOrig = null; f_ttd.value=''; renderTtd(); renderPreview();
 });
+
+/* ---------- Pad: gambar tanda tangan langsung dengan jari/mouse (hasil otomatis transparan) ---------- */
+(function(){
+  const overlay = document.getElementById('ttdPadOverlay');
+  const cv = document.getElementById('ttdPadCanvas');
+  if(!overlay || !cv) return;
+  const ctx = cv.getContext('2d');
+  let strokes = [], cur = null, warna = '#111111', raf = 0;
+
+  function gambarGoresan(s){
+    ctx.strokeStyle = s.c; ctx.fillStyle = s.c; ctx.lineWidth = s.w;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const p = s.p;
+    if(p.length === 1){ ctx.beginPath(); ctx.arc(p[0][0], p[0][1], s.w / 2, 0, Math.PI * 2); ctx.fill(); return; }
+    ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+    for(let i = 1; i < p.length - 1; i++){
+      const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2;
+      ctx.quadraticCurveTo(p[i][0], p[i][1], mx, my);   // kurva halus antar titik
+    }
+    const l = p[p.length - 1]; ctx.lineTo(l[0], l[1]); ctx.stroke();
+  }
+  function gambarUlang(){
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    strokes.forEach(gambarGoresan);
+  }
+  function jadwalkan(){ if(!raf) raf = requestAnimationFrame(()=>{ raf = 0; gambarUlang(); }); }
+  function posisi(e){
+    const r = cv.getBoundingClientRect();
+    return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height];
+  }
+  cv.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+    const r = cv.getBoundingClientRect();
+    const tebal = parseInt(document.getElementById('ttdPadWidth').value, 10) * (cv.width / r.width); // tebal mengikuti tampilan layar
+    cur = {c: warna, w: tebal, p: [posisi(e)]};
+    strokes.push(cur);
+    jadwalkan();
+  });
+  cv.addEventListener('pointermove', (e)=>{
+    if(!cur) return;
+    e.preventDefault();
+    const list = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+    list.forEach(ev => cur.p.push(posisi(ev)));
+    jadwalkan();
+  });
+  function akhiri(){ cur = null; }
+  cv.addEventListener('pointerup', akhiri);
+  cv.addEventListener('pointercancel', akhiri);
+
+  document.getElementById('ttdPadColors').addEventListener('click', (e)=>{
+    const b = e.target.closest('.ttd-pad-swatch'); if(!b) return;
+    warna = b.getAttribute('data-color');
+    document.querySelectorAll('#ttdPadColors .ttd-pad-swatch').forEach(x => x.classList.toggle('active', x === b));
+  });
+  document.getElementById('ttdPadUndo').addEventListener('click', ()=>{ strokes.pop(); gambarUlang(); });
+  document.getElementById('ttdPadClear').addEventListener('click', ()=>{ strokes = []; gambarUlang(); });
+  function tutup(){ overlay.classList.remove('open'); cur = null; }
+  document.getElementById('ttdPadCancel').addEventListener('click', tutup);
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay.classList.contains('open')) tutup(); });
+  document.getElementById('btnDrawTtd').addEventListener('click', ()=>{
+    strokes = []; cur = null; gambarUlang();
+    overlay.classList.add('open');
+  });
+  document.getElementById('ttdPadSave').addEventListener('click', ()=>{
+    if(!strokes.length){ alert('Belum ada tanda tangan yang digambar.'); return; }
+    const kecil = ttdPotongKotak(cv, 6);
+    if(!kecil){ alert('Belum ada tanda tangan yang digambar.'); return; }
+    const url = kecil.toDataURL('image/png');
+    ttdOrig = null; // hasil gambar tidak diproses ulang (sudah transparan)
+    const width = Math.min(TTD_GAMBAR_W, kecil.width);
+    const height = Math.max(1, Math.round(width * kecil.height / kecil.width));
+    state.ttd = {name: 'Tanda tangan (digambar)', size: ttdUkuranByte(url), url, width, height,
+                 offsetX: 0, offsetY: 0, mode: 'gambar', kekuatan: TTD_BG_DEFAULT};
+    tutup();
+    renderTtd(); renderPreview();
+  });
+})();
 document.getElementById('btnResetTtdPos').addEventListener('click', ()=>{
 if(!state.ttd) return;
 state.ttd.offsetX = 0; state.ttd.offsetY = 0;
@@ -731,17 +996,34 @@ renderPreview();
 function renderTtd(){
 const box = document.getElementById('ttdPreviewBox');
 const sizeBox = document.getElementById('ttdSizeBox');
+const bgBox = document.getElementById('ttdBgBox');
 if(state.ttd){
 box.style.display='flex';
 document.getElementById('ttdPreviewImg').src = state.ttd.url;
+const info = state.ttd.mode === 'gambar' ? ' · digambar langsung'
+  : state.ttd.mode === 'transparan' ? ' · sudah transparan'
+  : state.ttd.mode === 'asli' ? ' · gambar asli (latar ikut tercetak)'
+  : ' · latar dihapus otomatis';
 document.getElementById('ttdFileName').textContent = state.ttd.name;
-document.getElementById('ttdFileSize').textContent = fmtBytes(state.ttd.size);
+document.getElementById('ttdFileSize').textContent = fmtBytes(state.ttd.size) + info;
 sizeBox.style.display='block';
 f_ttdSize.value = state.ttd.width;
 document.getElementById('ttdSizeLabel').textContent = state.ttd.width + ' px';
+// Panel "Kekuatan Hapus Latar" hanya untuk foto/scan yang bisa diproses ulang
+const bisaProses = !!(ttdOrig && !ttdOrig.sudahTransparan && state.ttd.mode !== 'gambar');
+if(bgBox) bgBox.style.display = bisaProses ? 'block' : 'none';
+if(bisaProses){
+  const sl = document.getElementById('f_ttdBg'), btn = document.getElementById('btnTtdOriginal');
+  const k = state.ttd.kekuatan != null ? state.ttd.kekuatan : TTD_BG_DEFAULT;
+  if(document.activeElement !== sl) sl.value = k; // jangan "menarik balik" slider saat sedang diseret
+  sl.disabled = (state.ttd.mode === 'asli');
+  document.getElementById('ttdBgLabel').textContent = state.ttd.mode === 'asli' ? 'nonaktif' : (sl.value + '%');
+  btn.textContent = state.ttd.mode === 'asli' ? 'Hapus latar otomatis lagi' : 'Pakai gambar asli (tanpa hapus latar)';
+}
 } else {
 box.style.display='none';
 sizeBox.style.display='none';
+if(bgBox) bgBox.style.display='none';
 }
 }
 f_ttdSize.addEventListener('input', ()=>{
@@ -764,8 +1046,9 @@ handle.addEventListener('mousedown', (e)=>{
 e.preventDefault();
 const startX = e.clientX;
 const startW = state.ttd.width;
+const zm = getPreviewZoom();
 function onMove(ev){
-let newW = Math.max(40, Math.min(260, Math.round(startW + (ev.clientX - startX))));
+let newW = Math.max(40, Math.min(260, Math.round(startW + (ev.clientX - startX) / zm)));
 state.ttd.width = newW;
 state.ttd.height = Math.round(newW * ratio);
 box.style.width = newW + 'px';
@@ -786,10 +1069,11 @@ e.preventDefault(); // PERBAIKAN: cegah gestur scroll/zoom bawaan browser ikut a
 const t = e.touches[0]; if(!t) return;
 const startX = t.clientX;
 const startW = state.ttd.width;
+const zm = getPreviewZoom();
 function onMove(ev){
 ev.preventDefault(); // PERBAIKAN: tanpa ini, layar HP ikut ter-scroll saat jari menggeser titik resize
 const tt = ev.touches[0]; if(!tt) return;
-let newW = Math.max(40, Math.min(260, Math.round(startW + (tt.clientX - startX))));
+let newW = Math.max(40, Math.min(260, Math.round(startW + (tt.clientX - startX) / zm)));
 state.ttd.width = newW;
 state.ttd.height = Math.round(newW * ratio);
 box.style.width = newW + 'px';
@@ -819,9 +1103,10 @@ if(e.target.classList.contains('ttd-resize-handle')) return;
 e.preventDefault();
 const startX = e.clientX, startY = e.clientY;
 const startOX = state.ttd.offsetX||0, startOY = state.ttd.offsetY||0;
+const zm = getPreviewZoom(); // pratinjau diperkecil (CSS zoom): bagi dengan zoom agar gambar mengikuti kursor 1:1
 function onMove(ev){
-state.ttd.offsetX = startOX + (ev.clientX - startX);
-state.ttd.offsetY = startOY + (ev.clientY - startY);
+state.ttd.offsetX = startOX + (ev.clientX - startX) / zm;
+state.ttd.offsetY = startOY + (ev.clientY - startY) / zm;
 applyTransform();
 }
 function onUp(){
@@ -838,11 +1123,12 @@ e.preventDefault(); // PERBAIKAN: cegah gestur scroll/zoom bawaan browser ikut a
 const t = e.touches[0]; if(!t) return;
 const startX = t.clientX, startY = t.clientY;
 const startOX = state.ttd.offsetX||0, startOY = state.ttd.offsetY||0;
+const zm = getPreviewZoom();
 function onMove(ev){
 ev.preventDefault(); // PERBAIKAN: tanpa ini, layar HP ikut ter-scroll saat jari menggeser tanda tangan
 const tt = ev.touches[0]; if(!tt) return;
-state.ttd.offsetX = startOX + (tt.clientX - startX);
-state.ttd.offsetY = startOY + (tt.clientY - startY);
+state.ttd.offsetX = startOX + (tt.clientX - startX) / zm;
+state.ttd.offsetY = startOY + (tt.clientY - startY) / zm;
 applyTransform();
 }
 function onEnd(){
