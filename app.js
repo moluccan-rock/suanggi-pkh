@@ -230,6 +230,23 @@ function prosesAjukanPerpanjangan(){
     });
 }
 
+var sedangLogin = false;
+/* Loading bola memantul di gerbang login. tanpaForm=true: jangan tampilkan lagi form login (dipakai saat pindah ke form perpanjangan) */
+function tampilBolaLogin(aktif, tanpaForm){
+  var bola = document.getElementById('loginBounce');
+  var form = document.getElementById('loginForm');
+  var btn = document.getElementById('btnLoginMasuk');
+  if(btn) btn.disabled = !!aktif;
+  if(aktif){
+    form.style.display = 'none';
+    bola.style.display = 'block';
+    document.getElementById('loginError').style.display = 'none';
+  } else {
+    bola.style.display = 'none';
+    if(!tanpaForm) form.style.display = 'block';
+  }
+}
+
 function prosesLoginToken(){
   var nip = (document.getElementById('loginNip').value || '').trim();
   var token = (document.getElementById('loginToken').value || '').trim();
@@ -242,19 +259,27 @@ function prosesLoginToken(){
     return;
   }
 
+  if(sedangLogin) return; // cegah klik ganda
+  sedangLogin = true;
+  tampilBolaLogin(true);
+
   panggilAPI('loginDenganToken', { nip: nip, token: token }).then(function(res){
       if(res.status === 'success'){
         currentUser = res.data;
         currentUser.token = token;
         SafeStorage.set('suanggi_login', JSON.stringify({ nip: nip, ts: Date.now() })); // token SENGAJA tidak disimpan (lihat catatan keamanan di cekStatusLogin)
-        masukKeAplikasi();
+        // Bola tetap memantul; gerbang login baru ditutup setelah daftar jabatan selesai dimuat.
+        masukKeAplikasi(true);
       } else if(res.status === 'expired'){
+        sedangLogin = false; tampilBolaLogin(false, true);
         tampilkanFormPerpanjangan(res.data.nip, res.data.nama, res.message);
       } else {
+        sedangLogin = false; tampilBolaLogin(false);
         errBox.textContent = res.message;
         errBox.style.display = 'block';
       }
     }).catch(function(err){
+      sedangLogin = false; tampilBolaLogin(false);
       errBox.textContent = 'Gagal terhubung ke server: ' + err.message;
       errBox.style.display = 'block';
     });
@@ -298,8 +323,9 @@ function prosesRegistrasi(){
     });
 }
 
-function masukKeAplikasi(){
-  document.getElementById('loginGate').style.display = 'none';
+function masukKeAplikasi(tahanGerbang){
+  // tahanGerbang=true (login manual): gerbang login ditutup nanti, setelah daftar jabatan selesai dimuat.
+  if(!tahanGerbang) document.getElementById('loginGate').style.display = 'none';
   // PERBAIKAN BUG: baris ini SEBELUMNYA ikut menghapus class 'role-locked',
   // yang seharusnya HANYA dihapus oleh selectJabatan() setelah pengguna
   // benar-benar memilih jabatan. Akibatnya wizard langsung melompat ke
@@ -349,12 +375,22 @@ function masukKeAplikasi(){
         JABATAN_DATA = res.jabatanData || {};
         JABATAN_META = res.jabatanMeta || {};
         renderRoleList();
+        if(tahanGerbang) selesaiBolaLogin();
       } else {
         if(roleList) roleList.innerHTML = '<p style="text-align:center;color:#dc2626;font-size:12px;padding:20px;">Gagal memuat data jabatan: ' + res.message + '. Coba muat ulang halaman.</p>';
+        if(tahanGerbang) selesaiBolaLogin();
       }
     }).catch(function(err){
       if(roleList) roleList.innerHTML = '<p style="text-align:center;color:#dc2626;font-size:12px;padding:20px;">Gagal memuat data jabatan: ' + err.message + '. Coba muat ulang halaman.</p>';
+      if(tahanGerbang) selesaiBolaLogin();
     });
+}
+
+/* Menutup gerbang login + menghentikan bola setelah tahap memuat jabatan selesai */
+function selesaiBolaLogin(){
+  sedangLogin = false;
+  document.getElementById('loginGate').style.display = 'none';
+  tampilBolaLogin(false, true);
 }
 
 /* =================== PANTAU MASA AKTIF TOKEN (Kredit = jumlah hari pakai) =================== */

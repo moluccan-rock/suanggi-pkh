@@ -57,9 +57,16 @@
       </div>
     </div>
 
+    <!-- Loading bola memantul: tampil sejak klik "Masuk" sampai daftar jabatan siap -->
+    <div id="loginBounce" style="display:none;" role="status" aria-live="polite">
+      <div class="bounce-wrap">
+        <div class="bounce-stage" aria-hidden="true"><span class="bounce-ball"></span><span class="bounce-shadow"></span></div>
+        <p class="bounce-text">Memeriksa akses<span class="suanggi-dots"><span>.</span><span>.</span><span>.</span></span></p>
+      </div>
+    </div>
+
     <!-- FORM 1: LOGIN dengan NIP + Token -->
     <div id="loginForm" style="display:none; text-align:left;">
-      <p style="font-size:12px; color:#4b5563; margin:0 0 18px;">Masukkan NIP dan Kode Token yang telah dikirimkan Admin ke WhatsApp/Telegram/Email Anda.</p>
       <div style="margin-bottom:10px;">
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">NIP</label>
         <input type="text" id="loginNip" inputmode="numeric" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
@@ -68,7 +75,7 @@
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Kode Token</label>
         <input type="text" id="loginToken" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; text-transform:uppercase;">
       </div>
-      <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
+      <button class="btn btn-gold" id="btnLoginMasuk" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a>
       </p>

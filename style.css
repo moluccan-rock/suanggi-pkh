@@ -226,6 +226,24 @@
   }
 
   .suanggi-loader-text{ font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:.3px; color:rgba(255,255,255,.88); display:flex; align-items:center; gap:2px; }
+  /* Loading login: bola emas memantul */
+  .bounce-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin:30px auto 22px;}
+  .bounce-stage{position:relative;width:80px;height:82px;}
+  .bounce-ball{position:absolute;left:50%;top:0;width:24px;height:24px;margin-left:-12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#f6c042 45%,#c98a0b 100%);box-shadow:0 0 14px rgba(246,192,66,.55);transform-origin:50% 100%;animation:bounceBall .8s infinite;}
+  .bounce-shadow{position:absolute;left:50%;bottom:0;width:26px;height:7px;margin-left:-13px;border-radius:50%;background:rgba(0,0,0,.55);filter:blur(1.5px);animation:bounceShadow .8s infinite;}
+  .bounce-text{margin:0;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.3px;color:rgba(255,255,255,.9);display:flex;align-items:center;gap:2px;}
+  @keyframes bounceBall{
+    0%{transform:translateY(0) scale(1,1);animation-timing-function:cubic-bezier(.55,0,1,.45);}
+    47%{transform:translateY(54px) scale(1,1);}
+    50%{transform:translateY(58px) scale(1.3,.7);animation-timing-function:cubic-bezier(0,.55,.45,1);}
+    53%{transform:translateY(54px) scale(1,1);}
+    100%{transform:translateY(0) scale(1,1);}
+  }
+  @keyframes bounceShadow{
+    0%,100%{transform:scale(.45);opacity:.18;}
+    50%{transform:scale(1.15);opacity:.6;}
+  }
+  @media (prefers-reduced-motion: reduce){ .bounce-ball,.bounce-shadow{animation:none !important;} .bounce-ball{top:30px;} }
   .suanggi-dots span{ display:inline-block; animation:suanggiDotBlink 1.3s infinite; opacity:0; }
   .suanggi-dots span:nth-child(1){ animation-delay:0s; }
   .suanggi-dots span:nth-child(2){ animation-delay:.2s; }
