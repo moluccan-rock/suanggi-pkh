@@ -2,7 +2,7 @@
 // KONFIGURASI
 // ============================================
 // GANTI dengan URL /exec hasil deploy Kode.gs sebagai Web App.
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzMrFmI42amIs7kpqb5qxf3mgERlHS68IqR7iOUK_eacJtH29SV2A-jLqMpWXcqm6MiVg/exec';
+const GAS_URL = 'PASTE_URL_WEB_APP_ANDA_DI_SINI';
 
 async function panggilAPI(action, data) {
   try {
@@ -894,17 +894,11 @@ f_ttd.addEventListener('change', async ()=>{
 });
 (function(){
   const slider = document.getElementById('f_ttdBg');
-  const btnAsli = document.getElementById('btnTtdOriginal');
   let timer = null;
   slider.addEventListener('input', ()=>{
     document.getElementById('ttdBgLabel').textContent = slider.value + '%';
     clearTimeout(timer);
     timer = setTimeout(()=>{ if(ttdOrig && state.ttd && state.ttd.mode !== 'asli') ttdTerapkan(parseInt(slider.value, 10), false); }, 90);
-  });
-  btnAsli.addEventListener('click', ()=>{
-    if(!ttdOrig || !state.ttd) return;
-    if(state.ttd.mode === 'asli') ttdTerapkan(parseInt(slider.value, 10), false);
-    else ttdTerapkan(null, false);
   });
 })();
 document.getElementById('btnRemoveTtd').addEventListener('click', ()=>{
@@ -988,11 +982,6 @@ state.ttd = null; ttdOrig = null; f_ttd.value=''; renderTtd(); renderPreview();
     renderTtd(); renderPreview();
   });
 })();
-document.getElementById('btnResetTtdPos').addEventListener('click', ()=>{
-if(!state.ttd) return;
-state.ttd.offsetX = 0; state.ttd.offsetY = 0;
-renderPreview();
-});
 function renderTtd(){
 const box = document.getElementById('ttdPreviewBox');
 const sizeBox = document.getElementById('ttdSizeBox');
@@ -1013,12 +1002,11 @@ document.getElementById('ttdSizeLabel').textContent = state.ttd.width + ' px';
 const bisaProses = !!(ttdOrig && !ttdOrig.sudahTransparan && state.ttd.mode !== 'gambar');
 if(bgBox) bgBox.style.display = bisaProses ? 'block' : 'none';
 if(bisaProses){
-  const sl = document.getElementById('f_ttdBg'), btn = document.getElementById('btnTtdOriginal');
+  const sl = document.getElementById('f_ttdBg');
   const k = state.ttd.kekuatan != null ? state.ttd.kekuatan : TTD_BG_DEFAULT;
   if(document.activeElement !== sl) sl.value = k; // jangan "menarik balik" slider saat sedang diseret
   sl.disabled = (state.ttd.mode === 'asli');
   document.getElementById('ttdBgLabel').textContent = state.ttd.mode === 'asli' ? 'nonaktif' : (sl.value + '%');
-  btn.textContent = state.ttd.mode === 'asli' ? 'Hapus latar otomatis lagi' : 'Pakai gambar asli (tanpa hapus latar)';
 }
 } else {
 box.style.display='none';
