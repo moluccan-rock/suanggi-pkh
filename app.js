@@ -2,7 +2,7 @@
 // KONFIGURASI
 // ============================================
 // GANTI dengan URL /exec hasil deploy Kode.gs sebagai Web App.
-const GAS_URL = 'PASTE_URL_WEB_APP_ANDA_DI_SINI';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzMrFmI42amIs7kpqb5qxf3mgERlHS68IqR7iOUK_eacJtH29SV2A-jLqMpWXcqm6MiVg/exec';
 
 async function panggilAPI(action, data) {
   try {
