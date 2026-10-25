@@ -1536,7 +1536,7 @@ var AI_SPEC = {
 };
 
 /* Menentukan set pertanyaan. Mengembalikan null untuk RHK P2K2 (tanpa popup). */
-function aiPilihSpec(item, aksiText){
+function aiKunciSpec(item, aksiText){
   var r = String((item && item.rhk) || '').toLowerCase();
   var a = String(aksiText || '').toLowerCase();
   if(r.indexOf('p2k2') >= 0) return null;
@@ -1572,12 +1572,31 @@ function aiPilihSpec(item, aksiText){
     else if(a.indexOf('evaluasi kinerja') >= 0) kunci = 'evaluasi';
     else if(a.indexOf('tugas lainnya') >= 0) kunci = 'tugasLain';
   }
+  return kunci;
+}
+function aiPilihSpec(item, aksiText){
+  var kunci = aiKunciSpec(item, aksiText);
+  if(kunci === null) return null;
   return [AI_Q_WAKTU].concat(AI_SPEC[kunci] || AI_SPEC.generik, [AI_Q_AKHIR]);
 }
 
+/* Aksi yang memakai bagian lipat "Data KPM" (nama lengkap + NIK 16 angka). Disamarkan sebelum ke AI. */
+var AI_KPM = {
+  masalahBansos:        {judul: 'KPM yang bermasalah'},
+  pendampinganKomitmen: {judul: 'KPM yang didampingi'},
+  verifikasiKomitmen:   {judul: 'KPM yang belum memenuhi komitmen'},
+  graduasi:             {judul: 'KPM yang diusulkan graduasi'},
+  ppse:                 {judul: 'KPM yang diusulkan PPSE'},
+  vervalCalon:          {judul: 'Calon penerima yang diverifikasi'},
+  pemutakhiran:         {judul: 'KPM yang datanya dimutakhirkan'},
+  kasus:                {judul: 'KPM yang ditangani'}
+};
+var AI_KPM_MAKS = 10;
+function aiInfoKpm(item, aksiText){ return AI_KPM[aiKunciSpec(item, aksiText)] || null; }
+
 /* Jawaban diingat selama halaman terbuka, hanya untuk RHK + aksi yang sedang aktif */
-var aiJawaban = { kunci: '', nilai: {} };
-function aiJawabanReset(){ aiJawaban = { kunci: '', nilai: {} }; }
+var aiJawaban = { kunci: '', nilai: {}, kpm: [] };
+function aiJawabanReset(){ aiJawaban = { kunci: '', nilai: {}, kpm: [] }; }
 
 var aiPopSedangProses = false;
 var aiPopSpec = null;
@@ -1636,6 +1655,70 @@ function aiPopKumpul(){
   return hasil;
 }
 
+
+/* ---------- Data KPM: baris isian, validasi, penyamaran, pemulihan ---------- */
+function aiKpmTambahBaris(nama, nik){
+  var rows = document.getElementById('aiPopKpmRows');
+  if(rows.children.length >= AI_KPM_MAKS) return;
+  var r = document.createElement('div'); r.className = 'ai-pop-kpm-row';
+  var n = document.createElement('input'); n.type = 'text'; n.maxLength = 80; n.dataset.f = 'nama'; n.placeholder = 'Nama lengkap'; n.value = nama || '';
+  var k = document.createElement('input'); k.type = 'text'; k.maxLength = 19; k.inputMode = 'numeric'; k.dataset.f = 'nik'; k.placeholder = 'NIK (16 angka)'; k.value = nik || '';
+  var x = document.createElement('button'); x.type = 'button'; x.className = 'ai-pop-kpm-hapus'; x.textContent = '×'; x.title = 'Hapus baris'; x.setAttribute('aria-label', 'Hapus baris');
+  x.addEventListener('click', function(){ r.remove(); aiKpmUpdateTombol(); });
+  [n, k].forEach(function(i){ i.addEventListener('input', function(){ i.classList.remove('salah'); }); });
+  r.appendChild(n); r.appendChild(k); r.appendChild(x); rows.appendChild(r);
+  aiKpmUpdateTombol();
+}
+function aiKpmUpdateTombol(){
+  var rows = document.getElementById('aiPopKpmRows');
+  document.getElementById('aiPopKpmTambah').style.display = rows.children.length >= AI_KPM_MAKS ? 'none' : '';
+}
+/* Mengembalikan {daftar:[{nama,nik}], error:''}. NIK dinormalkan jadi 16 angka. */
+function aiKpmKumpul(){
+  var hasil = [], error = '';
+  Array.prototype.forEach.call(document.querySelectorAll('#aiPopKpmRows .ai-pop-kpm-row'), function(r){
+    var n = r.querySelector('[data-f=nama]'), k = r.querySelector('[data-f=nik]');
+    var nama = n.value.replace(/\s+/g, ' ').trim(), nik = k.value.replace(/\D/g, '');
+    n.classList.remove('salah'); k.classList.remove('salah');
+    if(!nama && !nik) return;
+    if(!nama){ n.classList.add('salah'); if(!error) error = 'Isi nama lengkap untuk setiap NIK.'; return; }
+    if(nik && nik.length !== 16){ k.classList.add('salah'); if(!error) error = 'NIK harus 16 angka (' + nama + ' baru ' + nik.length + ' angka).'; return; }
+    hasil.push({nama: nama, nik: nik});
+  });
+  return {daftar: hasil, error: error};
+}
+function aiEscRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+/* peta = {nama:[{kode,nilai}], nik:[{kode,nilai}]} */
+function aiBuatPeta(daftar){
+  var peta = {nama: [], nik: []};
+  daftar.forEach(function(d, i){
+    peta.nama.push({kode: '[KPM-' + (i + 1) + ']', nilai: d.nama});
+    if(d.nik) peta.nik.push({kode: '[NIK-' + (peta.nik.length + 1) + ']', nilai: d.nik, milik: i});
+  });
+  return peta;
+}
+/* Mengganti nama terdaftar dan SEMUA angka 16 digit (terdaftar atau tidak) menjadi kode samaran. */
+function aiSamarkan(teks, peta){
+  var t = String(teks || '');
+  peta.nama.slice().sort(function(a, b){ return b.nilai.length - a.nilai.length; }).forEach(function(n){
+    var pola = n.nilai.split(/\s+/).map(aiEscRe).join('\\s+');
+    t = t.replace(new RegExp(pola, 'gi'), n.kode);
+  });
+  t = t.replace(/\b\d{4}[\s.\-]?\d{4}[\s.\-]?\d{4}[\s.\-]?\d{4}\b/g, function(m){
+    var dig = m.replace(/\D/g, '');
+    for(var i = 0; i < peta.nik.length; i++){ if(peta.nik[i].nilai === dig) return peta.nik[i].kode; }
+    var baru = {kode: '[NIK-' + (peta.nik.length + 1) + ']', nilai: dig, milik: -1};
+    peta.nik.push(baru); return baru.kode;
+  });
+  return t;
+}
+function aiPulihkan(teks, peta){
+  var t = String(teks || '');
+  t = t.replace(/\[\s*KPM[-\s_]?(\d+)\s*\]/gi, function(m, i){ var e = peta.nama[parseInt(i, 10) - 1]; return e ? e.nilai : m; });
+  t = t.replace(/\[\s*NIK[-\s_]?(\d+)\s*\]/gi, function(m, i){ var e = peta.nik[parseInt(i, 10) - 1]; return e ? e.nilai : m; });
+  return t;
+}
+
 function aiPopTutup(){
   document.getElementById('aiPopOverlay').classList.remove('open');
 }
@@ -1651,7 +1734,7 @@ function aiPopKunci(kunci){
 function aiPopBuka(item, aksiText){
   aiPopSpec = aiPilihSpec(item, aksiText);
   var kunci = state.jabatan + '|' + state.rhkNo + '|' + state.aksiIdx;
-  if(aiJawaban.kunci !== kunci){ aiJawaban = { kunci: kunci, nilai: {} }; }
+  if(aiJawaban.kunci !== kunci){ aiJawaban = { kunci: kunci, nilai: {}, kpm: [] }; }
   var ctx = document.getElementById('aiPopCtx'); ctx.textContent = '';
   [['RHK', item ? item.rhk : ''], ['Indikator kinerja', item ? item.indikator : ''], ['Rencana aksi', aksiText], ['Bulan laporan', state.bulan + ' ' + state.tahun]].forEach(function(p){
     var b = document.createElement('b'); b.textContent = p[0];
@@ -1660,6 +1743,20 @@ function aiPopBuka(item, aksiText){
   });
   var box = document.getElementById('aiPopFields'); box.textContent = '';
   aiPopSpec.forEach(function(q){ box.appendChild(aiPopBuatField(q)); });
+  var infoKpm = aiInfoKpm(item, aksiText);
+  var det = document.getElementById('aiPopKpm'), rowsEl = document.getElementById('aiPopKpmRows');
+  rowsEl.textContent = '';
+  document.getElementById('aiPopWarn').textContent = infoKpm
+    ? 'Di kolom di atas jangan isi nama atau NIK. Nama dan NIK lengkap diisi di bagian "Data KPM" di bawah, yang disamarkan otomatis sebelum ke AI.'
+    : 'Jangan isi nama atau NIK KPM. Cukup jumlah dan wilayah.';
+  if(infoKpm){
+    det.style.display = '';
+    document.getElementById('aiPopKpmJudul').textContent = '\u2795 Tambahkan nama dan NIK: ' + infoKpm.judul + ' (opsional)';
+    var simpanKpm = aiJawaban.kpm || [];
+    simpanKpm.forEach(function(d){ aiKpmTambahBaris(d.nama, d.nik); });
+    if(!simpanKpm.length) aiKpmTambahBaris('', '');
+    det.open = simpanKpm.length > 0;
+  } else { det.style.display = 'none'; det.open = false; }
   aiPopError(''); aiPopKunci(false);
   document.getElementById('aiPopOverlay').classList.add('open');
   var f = box.querySelector('textarea'); if(f) f.focus();
@@ -1676,8 +1773,17 @@ function aiBangunPromptOtomatis(item, aksiText){
     'Tulis uraian pelaksanaan/realisasi HANYA untuk rencana aksi di atas (jangan bercerita tentang RHK atau aksi lain), 1-2 paragraf.';
 }
 
-function aiBangunPromptFakta(item, aksiText, fakta){
+function aiBangunPromptFakta(item, aksiText, fakta, peta, judulKpm){
   var daftar = fakta.map(function(f){ return '- ' + f.label + ': ' + f.isi; }).join('\n');
+  var blokKpm = '';
+  if(peta && peta.nama.length){
+    blokKpm = '\nDATA ' + String(judulKpm || 'KPM').toUpperCase() + ' (kode samaran; tulis kode PERSIS seperti tertulis, lengkap dengan kurung siku, jangan diubah, dipecah, diterjemahkan, atau diganti nama; jangan menambah orang lain):\n' +
+      peta.nama.map(function(n, i){
+        var nk = peta.nik.filter(function(x){ return x.milik === i; })[0];
+        return '- ' + n.kode + (nk ? ' (NIK: ' + nk.kode + ')' : '');
+      }).join('\n') + '\n' +
+      'Sebut setiap KPM di atas dengan kode namanya setidaknya sekali. Bila ada kode NIK, tulis dalam tanda kurung tepat setelah nama pertama kali disebut, contoh: [KPM-1] (NIK [NIK-1]).';
+  }
   return 'Susun dua bagian laporan bulanan PKH Kementerian Sosial RI, Direktorat Perlindungan Sosial Non Kebencanaan.\n' +
     'KONTEKS WAJIB DIIKUTI (jangan menyimpang dari ini):\n' +
     '- Jabatan pelapor: ' + state.jabatan + '\n' +
@@ -1686,14 +1792,14 @@ function aiBangunPromptFakta(item, aksiText, fakta){
     '- Rencana Aksi yang dikerjakan bulan ini: "' + aksiText + '"\n' +
     '- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
     'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; yang tidak tertulis di sini JANGAN dikarang, termasuk angka, tanggal, nama tempat, dan nama orang):\n' +
-    daftar + '\n' +
+    daftar + blokKpm + '\n' +
     'TUGAS: tulis dua bagian, dipisahkan oleh satu baris yang berisi persis ' + AI_PENANDA_HASIL + '\n' +
     '1) Bagian pertama = Uraian Pelaksanaan/Realisasi Kegiatan (1-2 paragraf naratif yang merangkai waktu, wilayah, kegiatan, dan pihak yang terlibat menjadi satu kesatuan kalimat yang mengalir).\n' +
     '2) Bagian kedua = Hasil yang Dicapai (1 paragraf naratif: capaian dalam angka bila diberikan, temuan, kendala, dan tindak lanjut).\n' +
     'Hanya untuk rencana aksi di atas. Jika suatu hal tidak diberikan, tulis kalimat umum yang sesuai RHK tanpa mengarang angka, atau gunakan penanda [isi sesuai data lapangan]. Jangan menulis judul bagian.';
 }
 
-async function aiJalankan(prompt, ikutC){
+async function aiJalankan(prompt, ikutC, peta){
   var teks = await callClaudeAI_withCredit(prompt);
   teks = String(teks || '').trim();
   var b = teks, c = '';
@@ -1701,13 +1807,23 @@ async function aiJalankan(prompt, ikutC){
     var idx = teks.indexOf(AI_PENANDA_HASIL);
     if(idx >= 0){ b = teks.slice(0, idx).trim(); c = teks.slice(idx + AI_PENANDA_HASIL.length).trim(); }
   }
+  var peringatan = [];
+  if(peta && (peta.nama.length || peta.nik.length)){
+    b = aiPulihkan(b, peta); c = aiPulihkan(c, peta);
+    var gabung = (b + ' ' + c).toLowerCase(), gabungDigit = (b + ' ' + c).replace(/\D/g, '');
+    var hilangNama = peta.nama.filter(function(n){ return gabung.indexOf(n.nilai.toLowerCase()) < 0; }).map(function(n){ return n.nilai; });
+    var hilangNik = peta.nik.filter(function(n){ return gabungDigit.indexOf(n.nilai) < 0; }).map(function(n){ return n.nilai; });
+    if(hilangNama.length) peringatan.push('nama belum muncul di teks: ' + hilangNama.join(', '));
+    if(hilangNik.length) peringatan.push('NIK belum muncul di teks: ' + hilangNik.join(', '));
+    if(/\[\s*(KPM|NIK)[-\s_]?\d+\s*\]/i.test(b + ' ' + c)) peringatan.push('ada kode samaran yang tidak dikenali, periksa teksnya');
+  }
   var taB = document.getElementById('f_bUraian');
   taB.value = b; taB.dispatchEvent(new Event('input'));
   if(ikutC && c){
     var taC = document.getElementById('f_hasil');
     taC.value = c; taC.dispatchEvent(new Event('input'));
   }
-  return { bagianC: !!(ikutC && c) };
+  return { bagianC: !!(ikutC && c), peringatan: peringatan };
 }
 
 document.getElementById('btnGenB').addEventListener('click', function(){
@@ -1731,7 +1847,18 @@ async function aiPopKirim(tanpaFakta){
   if(aiPopSedangProses) return;
   var item = getSelectedRhk(), aksiText = getSelectedAksiText();
   var fakta = aiPopKumpul();
-  if(!tanpaFakta && fakta.length === 0){
+  var infoKpm = aiInfoKpm(item, aksiText);
+  var kpm = {daftar: [], error: ''};
+  if(infoKpm && !tanpaFakta){
+    kpm = aiKpmKumpul();
+    aiJawaban.kpm = kpm.daftar.slice();
+    if(kpm.error){
+      document.getElementById('aiPopKpm').open = true;
+      aiPopError(kpm.error);
+      return;
+    }
+  }
+  if(!tanpaFakta && fakta.length === 0 && kpm.daftar.length === 0){
     aiPopError('Isi minimal satu pertanyaan, atau pilih "Lewati, buat otomatis".');
     return;
   }
@@ -1739,11 +1866,19 @@ async function aiPopKirim(tanpaFakta){
   var st = document.getElementById('bAiStatus');
   try{
     st.textContent = 'Menghasilkan teks...';
-    var prompt = tanpaFakta ? aiBangunPromptOtomatis(item, aksiText) : aiBangunPromptFakta(item, aksiText, fakta);
-    var r = await aiJalankan(prompt, !tanpaFakta);
+    var peta = aiBuatPeta(kpm.daftar);
+    var prompt = tanpaFakta ? aiBangunPromptOtomatis(item, aksiText) : null;
+    if(!tanpaFakta){
+      // Samarkan nama/NIK terdaftar dan angka 16 digit di semua kolom bebas sebelum dikirim
+      var faktaAman = fakta.map(function(f){ return {label: f.label, isi: aiSamarkan(f.isi, peta)}; });
+      prompt = aiBangunPromptFakta(item, aksiText, faktaAman, peta, infoKpm ? infoKpm.judul : '');
+    }
+    var r = await aiJalankan(prompt, !tanpaFakta, tanpaFakta ? null : peta);
     aiPopTutup();
-    st.textContent = (!tanpaFakta && r.bagianC) ? 'Selesai. Bagian B dan C terisi.' : 'Selesai.';
-    setTimeout(function(){ st.textContent = ''; }, 3500);
+    var pesan = (!tanpaFakta && r.bagianC) ? 'Selesai. Bagian B dan C terisi.' : 'Selesai.';
+    if(r.peringatan && r.peringatan.length) pesan += ' Periksa: ' + r.peringatan.join('; ') + '.';
+    st.textContent = pesan;
+    setTimeout(function(){ st.textContent = ''; }, (r.peringatan && r.peringatan.length) ? 20000 : 3500);
   }catch(err){
     aiPopError('Gagal: ' + (err && err.message ? err.message : 'Permintaan AI gagal.') + ' Isian Anda tetap tersimpan, coba lagi.');
     st.textContent = '';
@@ -1751,6 +1886,7 @@ async function aiPopKirim(tanpaFakta){
     aiPopSedangProses = false; aiPopKunci(false);
   }
 }
+document.getElementById('aiPopKpmTambah').addEventListener('click', function(){ aiKpmTambahBaris('', ''); var l = document.querySelectorAll('#aiPopKpmRows input[data-f=nama]'); if(l.length) l[l.length-1].focus(); });
 document.getElementById('aiPopBuat').addEventListener('click', function(){ aiPopKirim(false); });
 document.getElementById('aiPopLewati').addEventListener('click', function(){ aiPopKirim(true); });
 document.getElementById('aiPopBatal').addEventListener('click', function(){ if(!aiPopSedangProses) aiPopTutup(); });

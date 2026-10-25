@@ -371,8 +371,14 @@
     <h3 id="aiPopTitle">&#10024; Sempurnakan dengan AI</h3>
     <p class="ai-pop-sub">Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.</p>
     <div class="ai-pop-ctx" id="aiPopCtx"></div>
-    <div class="ai-pop-warn">Jangan isi nama atau NIK KPM. Cukup jumlah dan wilayah.</div>
+    <div class="ai-pop-warn" id="aiPopWarn">Jangan isi nama atau NIK KPM. Cukup jumlah dan wilayah.</div>
     <div id="aiPopFields"></div>
+    <details class="ai-pop-kpm" id="aiPopKpm" style="display:none;">
+      <summary id="aiPopKpmJudul">&#10133; Tambahkan nama dan NIK KPM (opsional)</summary>
+      <p class="ai-pop-kpm-note">Isi nama lengkap dan NIK 16 angka. Data ini <b>disamarkan otomatis</b> sebelum dikirim ke AI, lalu dikembalikan di teks hasil. Cukup diisi di sini, jangan di kolom lain.</p>
+      <div id="aiPopKpmRows"></div>
+      <button type="button" class="btn btn-outline" id="aiPopKpmTambah">+ Tambah KPM</button>
+    </details>
     <div class="ai-pop-err" id="aiPopErr" role="alert"></div>
     <div class="ai-pop-actions">
       <button type="button" class="btn btn-outline" id="aiPopBatal">Batal</button>
