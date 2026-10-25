@@ -366,6 +366,21 @@
 </div>
 
 <!-- ===================== MODAL: GAMBAR TANDA TANGAN LANGSUNG ===================== -->
+<div class="ai-pop-overlay" id="aiPopOverlay" role="dialog" aria-modal="true" aria-labelledby="aiPopTitle">
+  <div class="ai-pop-modal">
+    <h3 id="aiPopTitle">&#10024; Sempurnakan dengan AI</h3>
+    <p class="ai-pop-sub">Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.</p>
+    <div class="ai-pop-ctx" id="aiPopCtx"></div>
+    <div class="ai-pop-warn">Jangan isi nama atau NIK KPM. Cukup jumlah dan wilayah.</div>
+    <div id="aiPopFields"></div>
+    <div class="ai-pop-err" id="aiPopErr" role="alert"></div>
+    <div class="ai-pop-actions">
+      <button type="button" class="btn btn-outline" id="aiPopBatal">Batal</button>
+      <button type="button" class="btn btn-outline" id="aiPopLewati">Lewati, buat otomatis</button>
+      <button type="button" class="btn btn-gold" id="aiPopBuat">Buat Uraian</button>
+    </div>
+  </div>
+</div>
 <div class="ttd-pad-overlay" id="ttdPadOverlay">
   <div class="ttd-pad-modal">
     <h3>Gambar Tanda Tangan</h3>

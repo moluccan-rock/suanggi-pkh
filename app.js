@@ -461,7 +461,8 @@ function handleLogout(otomatis){
   });
   var ttdBox = document.getElementById('ttdPreviewBox'); if(ttdBox) ttdBox.style.display = 'none';
   var ttdSizeBox = document.getElementById('ttdSizeBox'); if(ttdSizeBox) ttdSizeBox.style.display = 'none';
-  if(typeof ttdResetSemua === 'function') ttdResetSemua(); // lupakan foto TTD sumber & sembunyikan panel hapus latar
+  if(typeof ttdResetSemua === 'function') ttdResetSemua();
+  if(typeof aiJawabanReset === 'function') aiJawabanReset(); // lupakan foto TTD sumber & sembunyikan panel hapus latar
   var dropTtd = document.getElementById('dropTtd'); if(dropTtd) dropTtd.style.display = '';
   document.querySelectorAll('input[type="file"]').forEach(function(inp){ inp.value = ''; });
   var roleBadge = document.getElementById('roleBadgeName'); if(roleBadge) roleBadge.textContent = '-';
@@ -1406,23 +1407,356 @@ el.value = state[key];
 el.addEventListener('input', ()=>{ state[key] = el.value; renderPreview(); });
 });
 }
-/* =================== TOMBOL AI DENGAN PEMOTONG KREDIT =================== */
-document.getElementById('btnGenB').addEventListener('click', function(){
-if(state.rhkNo===null || state.aksiIdx===null){
-document.getElementById('bAiStatus').textContent = 'Pilih RHK & rencana aksi pada langkah 2 terlebih dahulu.';
-return;
+/* =================== TOMBOL AI + POPUP ISIAN FAKTA =================== */
+/* Alur: klik "Sempurnakan dengan AI" -> popup berisi 5 isian yang menyesuaikan RHK + rencana aksi terpilih
+   -> AI merangkai jawaban menjadi Bagian B (uraian) dan Bagian C (hasil). RHK P2K2 tidak memakai popup
+   (perilaku lama). Tanpa menekan tombol ini, aplikasi berjalan seperti biasa. */
+var AI_PENANDA_HASIL = '=====HASIL=====';
+var AI_Q_WAKTU = {id:'waktu', label:'Kapan dan di mana kegiatan dilaksanakan?', type:'text', ph:'Contoh: 5–9 Agustus, Desa ..., Kec. ...'};
+var AI_Q_AKHIR = {id:'akhir', label:'Kendala dan tindak lanjut', type:'text', ph:'Kendala yang dihadapi dan rencana berikutnya'};
+function aiQ(id, label, type, opsi, ph){ return {id:id, label:label, type:type, opsi:opsi||null, ph:ph||''}; }
+
+/* 3 isian khusus per rencana aksi (ditambah waktu/wilayah di awal dan kendala/tindak lanjut di akhir = 5 isian) */
+var AI_SPEC = {
+  generik: [
+    aiQ('g1','Kegiatan utama yang dilakukan','text',null,'Ringkas apa yang dikerjakan'),
+    aiQ('g2','Jumlah atau cakupan (KPM, peserta, dokumen, dll.)','text',null,'Contoh: 45 KPM'),
+    aiQ('g3','Hasil atau temuan penting','text')
+  ],
+  supervisi: [
+    aiQ('s1','Jumlah ASN PPPK yang disupervisi dan wilayahnya','text',null,'Contoh: 8 orang, Kab. ...'),
+    aiQ('s2','Aspek yang disupervisi dan temuan','text'),
+    aiQ('s3','Arahan yang diberikan','text')
+  ],
+  edukasiBansos: [
+    aiQ('e1','Sasaran edukasi','multi',['KPM','Aparat desa/kelurahan','Penyalur','Masyarakat umum']),
+    aiQ('e2','Jumlah peserta','text',null,'Contoh: 60 orang'),
+    aiQ('e3','Materi pokok','multi',['Cara pencairan','Penggunaan KKS','Waspada penipuan','Hak dan kewajiban KPM'])
+  ],
+  masalahBansos: [
+    aiQ('m1','Jenis permasalahan','multi',['Rekening pasif/dormant','KKS hilang atau rusak','Data tidak sesuai','Saldo tidak masuk']),
+    aiQ('m2','Jumlah KPM bermasalah dan yang sudah terselesaikan','text',null,'Contoh: 12 KPM, 9 terselesaikan'),
+    aiQ('m3','Langkah penyelesaian dan pihak yang dikoordinasikan','text',null,'Contoh: koordinasi dengan bank penyalur')
+  ],
+  monitoringBansos: [
+    aiQ('o1','Bentuk penyaluran','single',['Tunai','Non-tunai','Tunai dan non-tunai']),
+    aiQ('o2','Jumlah KPM yang dipantau','text',null,'Contoh: 80 KPM'),
+    aiQ('o3','Kondisi dan temuan di lapangan','text')
+  ],
+  penelitianBansos: [
+    aiQ('p1','Tujuan atau fokus penelitian','text'),
+    aiQ('p2','Cara pengumpulan data dan jumlah sampel','text',null,'Contoh: wawancara dan kunjungan rumah, 20 KPM'),
+    aiQ('p3','Temuan utama dan rekomendasi','text')
+  ],
+  verifikasiKomitmen: [
+    aiQ('v1','Komponen yang diverifikasi','multi',['Pendidikan','Kesehatan','Kesejahteraan sosial']),
+    aiQ('v2','Jumlah KPM diverifikasi, yang memenuhi dan belum memenuhi komitmen','text',null,'Contoh: 100 KPM, 92 memenuhi, 8 belum'),
+    aiQ('v3','Penyebab belum memenuhi komitmen','multi',['Jarak','Kondisi kesehatan','Kendala ekonomi','Data tidak sesuai'])
+  ],
+  pendampinganKomitmen: [
+    aiQ('d1','Bentuk layanan','multi',['Pendampingan','Mediasi','Fasilitasi','Advokasi','Kunjungan rumah']),
+    aiQ('d2','Jumlah KPM yang didampingi','text',null,'Contoh: 15 KPM'),
+    aiQ('d3','Permasalahan yang ditangani dan hasilnya (tanpa nama)','text')
+  ],
+  graduasi: [
+    aiQ('r1','Jumlah KPM yang diusulkan graduasi','text',null,'Contoh: 20 KPM'),
+    aiQ('r2','Jenis graduasi','multi',['Mandiri','Alamiah']),
+    aiQ('r3','Tahap usulan saat ini','single',['Disusun','Diverifikasi','Diajukan','Disetujui'])
+  ],
+  ppse: [
+    aiQ('x1','Jumlah KPM yang diusulkan PPSE','text',null,'Contoh: 10 KPM'),
+    aiQ('x2','Jenis usaha atau bidang pemberdayaan','text'),
+    aiQ('x3','Bentuk dukungan','multi',['Pelatihan','Bantuan modal','Akses permodalan','Pendampingan usaha'])
+  ],
+  pemutakhiran: [
+    aiQ('u1','Jumlah data KPM yang dimutakhirkan','text',null,'Contoh: 75 data'),
+    aiQ('u2','Jenis perubahan','multi',['Pindah domisili','Meninggal dunia','Perubahan komponen','Perubahan data keluarga']),
+    aiQ('u3','Aplikasi yang dipakai dan jumlah yang belum selesai','text')
+  ],
+  vervalCalon: [
+    aiQ('c1','Jumlah calon penerima yang diverifikasi dan divalidasi','text',null,'Contoh: 40 calon'),
+    aiQ('c2','Hasil verval (layak, tidak layak, belum ditemukan)','text',null,'Contoh: 30 layak, 8 tidak layak, 2 belum ditemukan'),
+    aiQ('c3','Cara verval','multi',['Kunjungan rumah','Musyawarah desa','Pemeriksaan dokumen'])
+  ],
+  kasus: [
+    aiQ('k1','Jenis kasus','multi',['Pengaduan','Bencana','Kerentanan']),
+    aiQ('k2','Jumlah kasus yang direspon dan yang selesai','text',null,'Contoh: 5 kasus, 3 selesai'),
+    aiQ('k3','Tindakan yang dilakukan','multi',['Asesmen','Kunjungan lapangan','Koordinasi','Usulan bantuan','Rujukan'])
+  ],
+  laporan: [
+    aiQ('l1','Jumlah dan jenis laporan yang disusun atau dikompilasi','text',null,'Contoh: 24 laporan pendamping'),
+    aiQ('l2','Sumber data, serta jumlah pendamping yang sudah dan belum menyetor','text'),
+    aiQ('l3','Temuan utama dari analisis','text')
+  ],
+  tlhp: [
+    aiQ('t1','Pokok temuan (tanpa nama orang)','text'),
+    aiQ('t2','Jumlah temuan yang ditindaklanjuti dari total','text',null,'Contoh: 4 dari 6 temuan'),
+    aiQ('t3','Status tindak lanjut','single',['Selesai','Sebagian','Masih proses'])
+  ],
+  sosialisasi: [
+    aiQ('z1','Sasaran sosialisasi','multi',['Aparat kecamatan','Aparat desa/kelurahan','KPM','Masyarakat umum']),
+    aiQ('z2','Jumlah peserta','text',null,'Contoh: 50 orang'),
+    aiQ('z3','Kebijakan atau materi yang disosialisasikan','text')
+  ],
+  rakor: [
+    aiQ('a1','Nama atau tema kegiatan','text'),
+    aiQ('a2','Penyelenggara, tempat atau daring, dan jumlah peserta','text'),
+    aiQ('a3','Materi kunci','text')
+  ],
+  pengawasan: [
+    aiQ('w1','Jumlah pendamping yang diawasi','text',null,'Contoh: 12 pendamping'),
+    aiQ('w2','Aspek yang diawasi dan temuan','text'),
+    aiQ('w3','Arahan atau edukasi yang diberikan','text')
+  ],
+  koordinasiInstansi: [
+    aiQ('i1','Instansi yang dikoordinasikan','text'),
+    aiQ('i2','Topik pembahasan','text'),
+    aiQ('i3','Kesepakatan dan tindak lanjut bersama','text')
+  ],
+  koordinasiKatim: [
+    aiQ('n1','Jumlah yang dikoordinasikan','text',null,'Contoh: 6 Katim Kab/Kota'),
+    aiQ('n2','Topik pelaksanaan program','text'),
+    aiQ('n3','Kesepakatan atau arahan','text')
+  ],
+  evaluasi: [
+    aiQ('f1','Jumlah ASN PPPK yang dievaluasi','text',null,'Contoh: 20 orang'),
+    aiQ('f2','Aspek atau indikator yang dinilai','text'),
+    aiQ('f3','Hasil secara umum (tanpa nama) dan tindak lanjut pembinaan','text')
+  ],
+  tugasLain: [
+    aiQ('y1','Sumber penugasan atau nomor surat tugas','text'),
+    aiQ('y2','Isi penugasan','text'),
+    aiQ('y3','Hasil yang dicapai','text')
+  ],
+  medsos: [
+    aiQ('b1','Platform yang dipakai','multi',['Instagram','Facebook','TikTok','YouTube','WhatsApp']),
+    aiQ('b2','Jumlah unggahan','text',null,'Contoh: 8 unggahan'),
+    aiQ('b3','Topik atau program yang diangkat','text')
+  ]
+};
+
+/* Menentukan set pertanyaan. Mengembalikan null untuk RHK P2K2 (tanpa popup). */
+function aiPilihSpec(item, aksiText){
+  var r = String((item && item.rhk) || '').toLowerCase();
+  var a = String(aksiText || '').toLowerCase();
+  if(r.indexOf('p2k2') >= 0) return null;
+  var kunci = 'generik';
+  if(r.indexOf('berita baik') >= 0){ kunci = 'medsos'; }
+  else if(r.indexOf('penyaluran bansos') >= 0){
+    if(a.indexOf('supervisi kebijakan') >= 0) kunci = 'supervisi';
+    else if(a.indexOf('edukasi') >= 0) kunci = 'edukasiBansos';
+    else if(a.indexOf('permasalahan') >= 0) kunci = 'masalahBansos';
+    else if(a.indexOf('monitoring') >= 0 || a.indexOf('pemantauan') >= 0) kunci = 'monitoringBansos';
+    else if(a.indexOf('penelitian') >= 0) kunci = 'penelitianBansos';
+  }
+  else if(r.indexOf('verifikasi komitmen') >= 0){
+    if(a.indexOf('supervisi') >= 0) kunci = 'supervisi';
+    else if(a.indexOf('pendampingan') >= 0) kunci = 'pendampinganKomitmen';
+    else kunci = 'verifikasiKomitmen';
+  }
+  else if(r.indexOf('graduasi') >= 0){ kunci = (a.indexOf('ppse') >= 0) ? 'ppse' : 'graduasi'; }
+  else if(r.indexOf('permutakhiran') >= 0 || r.indexOf('pemutakhiran') >= 0 || r.indexOf('verifikasi, validasi') >= 0){
+    if(a.indexOf('supervisi') >= 0) kunci = 'supervisi';
+    else if(a.indexOf('pemutakhiran') >= 0) kunci = 'pemutakhiran';
+    else kunci = 'vervalCalon';
+  }
+  else if(r.indexOf('kasus adaptif') >= 0){ kunci = 'kasus'; }
+  else if(r.indexOf('laporan bulanan') >= 0){ kunci = 'laporan'; }
+  else if(r.indexOf('direktif') >= 0){
+    if(a.indexOf('tindak lanjut hasil pemeriksaan') >= 0 || a.indexOf('tlhp') >= 0) kunci = 'tlhp';
+    else if(a.indexOf('rapat koordinasi') >= 0) kunci = 'rakor';
+    else if(a.indexOf('sosialisasi') >= 0) kunci = 'sosialisasi';
+    else if(a.indexOf('pengawasan') >= 0) kunci = 'pengawasan';
+    else if(a.indexOf('koordinasi dan sinkronisasi') >= 0) kunci = 'koordinasiInstansi';
+    else if(a.indexOf('berkoo') >= 0) kunci = 'koordinasiKatim';
+    else if(a.indexOf('evaluasi kinerja') >= 0) kunci = 'evaluasi';
+    else if(a.indexOf('tugas lainnya') >= 0) kunci = 'tugasLain';
+  }
+  return [AI_Q_WAKTU].concat(AI_SPEC[kunci] || AI_SPEC.generik, [AI_Q_AKHIR]);
 }
-const item = getSelectedRhk();
-const aksiText = getSelectedAksiText();
-generateWithAI(()=> `Susun bagian "B. Kegiatan yang Dilaksanakan" pada laporan bulanan PKH Kementerian Sosial RI, Direktorat Perlindungan Sosial Non Kebencanaan.
-KONTEKS WAJIB DIIKUTI (jangan menyimpang dari ini):
-- Jabatan pelapor: ${state.jabatan}
-- Rencana Hasil Kerja (RHK) terpilih: "${item ? item.rhk : ''}"
-- Indikator Kinerja Individu: "${item ? item.indikator : ''}"
-- Rencana Aksi yang dikerjakan bulan ini: "${aksiText}"
-- Bulan/Tahun laporan: ${state.bulan} ${state.tahun}
-Tulis uraian pelaksanaan/realisasi HANYA untuk rencana aksi di atas (jangan bercerita tentang RHK atau aksi lain), 1-2 paragraf.`,
-'f_bUraian', 'bAiStatus', this);
+
+/* Jawaban diingat selama halaman terbuka, hanya untuk RHK + aksi yang sedang aktif */
+var aiJawaban = { kunci: '', nilai: {} };
+function aiJawabanReset(){ aiJawaban = { kunci: '', nilai: {} }; }
+
+var aiPopSedangProses = false;
+var aiPopSpec = null;
+
+function aiPopBuatField(q){
+  var wrap = document.createElement('div'); wrap.className = 'ai-pop-field';
+  var lab = document.createElement('label'); lab.textContent = q.label; wrap.appendChild(lab);
+  var simpan = aiJawaban.nilai[q.id] || {};
+  if(q.type === 'text'){
+    var ta = document.createElement('textarea'); ta.rows = 2; ta.maxLength = 400; ta.dataset.q = q.id;
+    ta.placeholder = q.ph || ''; ta.value = simpan.teks || '';
+    lab.htmlFor = 'aiq_' + q.id; ta.id = 'aiq_' + q.id; wrap.appendChild(ta);
+    return wrap;
+  }
+  var pills = document.createElement('div'); pills.className = 'ai-pop-pills';
+  var nama = 'aiq_' + q.id, dipilih = simpan.pilihan || [];
+  q.opsi.forEach(function(op){
+    var pl = document.createElement('label'); pl.className = 'ai-pop-pill';
+    var inp = document.createElement('input'); inp.type = (q.type === 'single') ? 'radio' : 'checkbox';
+    inp.name = nama; inp.value = op; inp.checked = dipilih.indexOf(op) >= 0;
+    if(inp.checked) pl.classList.add('on');
+    inp.addEventListener('change', function(){
+      if(q.type === 'single'){
+        Array.prototype.forEach.call(pills.children, function(c){ c.classList.remove('on'); });
+      }
+      pl.classList.toggle('on', inp.checked);
+    });
+    pl.appendChild(inp); pl.appendChild(document.createTextNode(op)); pills.appendChild(pl);
+  });
+  wrap.appendChild(pills);
+  var lain = document.createElement('input'); lain.type = 'text'; lain.maxLength = 200;
+  lain.placeholder = 'Lainnya (tulis sendiri, boleh dikosongkan)'; lain.dataset.lain = q.id; lain.value = simpan.lain || '';
+  wrap.appendChild(lain);
+  return wrap;
+}
+
+function aiPopKumpul(){
+  var hasil = [], nilai = {};
+  aiPopSpec.forEach(function(q){
+    var teks = '', rec = {};
+    if(q.type === 'text'){
+      var ta = document.querySelector('#aiPopFields textarea[data-q="' + q.id + '"]');
+      teks = ta ? ta.value.trim() : ''; rec.teks = teks;
+    } else {
+      var pil = [];
+      Array.prototype.forEach.call(document.querySelectorAll('#aiPopFields input[name="aiq_' + q.id + '"]'), function(i){ if(i.checked) pil.push(i.value); });
+      var l = document.querySelector('#aiPopFields input[data-lain="' + q.id + '"]');
+      var lain = l ? l.value.trim() : '';
+      rec.pilihan = pil; rec.lain = lain;
+      teks = pil.concat(lain ? [lain] : []).join(', ');
+    }
+    nilai[q.id] = rec;
+    if(teks) hasil.push({ label: q.label, isi: teks });
+  });
+  aiJawaban.nilai = nilai;
+  return hasil;
+}
+
+function aiPopTutup(){
+  document.getElementById('aiPopOverlay').classList.remove('open');
+}
+function aiPopError(pesan){
+  var e = document.getElementById('aiPopErr');
+  e.textContent = pesan || ''; e.classList.toggle('show', !!pesan);
+}
+function aiPopKunci(kunci){
+  ['aiPopBatal','aiPopLewati','aiPopBuat'].forEach(function(id){ document.getElementById(id).disabled = kunci; });
+  document.getElementById('aiPopBuat').textContent = kunci ? 'Menghasilkan teks...' : 'Buat Uraian';
+}
+
+function aiPopBuka(item, aksiText){
+  aiPopSpec = aiPilihSpec(item, aksiText);
+  var kunci = state.jabatan + '|' + state.rhkNo + '|' + state.aksiIdx;
+  if(aiJawaban.kunci !== kunci){ aiJawaban = { kunci: kunci, nilai: {} }; }
+  var ctx = document.getElementById('aiPopCtx'); ctx.textContent = '';
+  [['RHK', item ? item.rhk : ''], ['Indikator kinerja', item ? item.indikator : ''], ['Rencana aksi', aksiText], ['Bulan laporan', state.bulan + ' ' + state.tahun]].forEach(function(p){
+    var b = document.createElement('b'); b.textContent = p[0];
+    var d = document.createElement('span'); d.textContent = p[1] || '-';
+    ctx.appendChild(b); ctx.appendChild(d);
+  });
+  var box = document.getElementById('aiPopFields'); box.textContent = '';
+  aiPopSpec.forEach(function(q){ box.appendChild(aiPopBuatField(q)); });
+  aiPopError(''); aiPopKunci(false);
+  document.getElementById('aiPopOverlay').classList.add('open');
+  var f = box.querySelector('textarea'); if(f) f.focus();
+}
+
+function aiBangunPromptOtomatis(item, aksiText){
+  return 'Susun bagian "B. Kegiatan yang Dilaksanakan" pada laporan bulanan PKH Kementerian Sosial RI, Direktorat Perlindungan Sosial Non Kebencanaan.\n' +
+    'KONTEKS WAJIB DIIKUTI (jangan menyimpang dari ini):\n' +
+    '- Jabatan pelapor: ' + state.jabatan + '\n' +
+    '- Rencana Hasil Kerja (RHK) terpilih: "' + (item ? item.rhk : '') + '"\n' +
+    '- Indikator Kinerja Individu: "' + (item ? item.indikator : '') + '"\n' +
+    '- Rencana Aksi yang dikerjakan bulan ini: "' + aksiText + '"\n' +
+    '- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
+    'Tulis uraian pelaksanaan/realisasi HANYA untuk rencana aksi di atas (jangan bercerita tentang RHK atau aksi lain), 1-2 paragraf.';
+}
+
+function aiBangunPromptFakta(item, aksiText, fakta){
+  var daftar = fakta.map(function(f){ return '- ' + f.label + ': ' + f.isi; }).join('\n');
+  return 'Susun dua bagian laporan bulanan PKH Kementerian Sosial RI, Direktorat Perlindungan Sosial Non Kebencanaan.\n' +
+    'KONTEKS WAJIB DIIKUTI (jangan menyimpang dari ini):\n' +
+    '- Jabatan pelapor: ' + state.jabatan + '\n' +
+    '- Rencana Hasil Kerja (RHK) terpilih: "' + (item ? item.rhk : '') + '"\n' +
+    '- Indikator Kinerja Individu: "' + (item ? item.indikator : '') + '"\n' +
+    '- Rencana Aksi yang dikerjakan bulan ini: "' + aksiText + '"\n' +
+    '- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
+    'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; yang tidak tertulis di sini JANGAN dikarang, termasuk angka, tanggal, nama tempat, dan nama orang):\n' +
+    daftar + '\n' +
+    'TUGAS: tulis dua bagian, dipisahkan oleh satu baris yang berisi persis ' + AI_PENANDA_HASIL + '\n' +
+    '1) Bagian pertama = Uraian Pelaksanaan/Realisasi Kegiatan (1-2 paragraf naratif yang merangkai waktu, wilayah, kegiatan, dan pihak yang terlibat menjadi satu kesatuan kalimat yang mengalir).\n' +
+    '2) Bagian kedua = Hasil yang Dicapai (1 paragraf naratif: capaian dalam angka bila diberikan, temuan, kendala, dan tindak lanjut).\n' +
+    'Hanya untuk rencana aksi di atas. Jika suatu hal tidak diberikan, tulis kalimat umum yang sesuai RHK tanpa mengarang angka, atau gunakan penanda [isi sesuai data lapangan]. Jangan menulis judul bagian.';
+}
+
+async function aiJalankan(prompt, ikutC){
+  var teks = await callClaudeAI_withCredit(prompt);
+  teks = String(teks || '').trim();
+  var b = teks, c = '';
+  if(ikutC){
+    var idx = teks.indexOf(AI_PENANDA_HASIL);
+    if(idx >= 0){ b = teks.slice(0, idx).trim(); c = teks.slice(idx + AI_PENANDA_HASIL.length).trim(); }
+  }
+  var taB = document.getElementById('f_bUraian');
+  taB.value = b; taB.dispatchEvent(new Event('input'));
+  if(ikutC && c){
+    var taC = document.getElementById('f_hasil');
+    taC.value = c; taC.dispatchEvent(new Event('input'));
+  }
+  return { bagianC: !!(ikutC && c) };
+}
+
+document.getElementById('btnGenB').addEventListener('click', function(){
+  var st = document.getElementById('bAiStatus');
+  if(state.rhkNo===null || state.aksiIdx===null){
+    st.textContent = 'Pilih RHK & rencana aksi pada langkah 2 terlebih dahulu.';
+    return;
+  }
+  var item = getSelectedRhk();
+  var aksiText = getSelectedAksiText();
+  var spec = aiPilihSpec(item, aksiText);
+  if(!spec){
+    // RHK P2K2: tanpa popup, perilaku lama
+    generateWithAI(function(){ return aiBangunPromptOtomatis(item, aksiText); }, 'f_bUraian', 'bAiStatus', document.getElementById('btnGenB'));
+    return;
+  }
+  aiPopBuka(item, aksiText);
+});
+
+async function aiPopKirim(tanpaFakta){
+  if(aiPopSedangProses) return;
+  var item = getSelectedRhk(), aksiText = getSelectedAksiText();
+  var fakta = aiPopKumpul();
+  if(!tanpaFakta && fakta.length === 0){
+    aiPopError('Isi minimal satu pertanyaan, atau pilih "Lewati, buat otomatis".');
+    return;
+  }
+  aiPopError(''); aiPopSedangProses = true; aiPopKunci(true);
+  var st = document.getElementById('bAiStatus');
+  try{
+    st.textContent = 'Menghasilkan teks...';
+    var prompt = tanpaFakta ? aiBangunPromptOtomatis(item, aksiText) : aiBangunPromptFakta(item, aksiText, fakta);
+    var r = await aiJalankan(prompt, !tanpaFakta);
+    aiPopTutup();
+    st.textContent = (!tanpaFakta && r.bagianC) ? 'Selesai. Bagian B dan C terisi.' : 'Selesai.';
+    setTimeout(function(){ st.textContent = ''; }, 3500);
+  }catch(err){
+    aiPopError('Gagal: ' + (err && err.message ? err.message : 'Permintaan AI gagal.') + ' Isian Anda tetap tersimpan, coba lagi.');
+    st.textContent = '';
+  }finally{
+    aiPopSedangProses = false; aiPopKunci(false);
+  }
+}
+document.getElementById('aiPopBuat').addEventListener('click', function(){ aiPopKirim(false); });
+document.getElementById('aiPopLewati').addEventListener('click', function(){ aiPopKirim(true); });
+document.getElementById('aiPopBatal').addEventListener('click', function(){ if(!aiPopSedangProses) aiPopTutup(); });
+document.getElementById('aiPopOverlay').addEventListener('mousedown', function(e){ if(e.target === this && !aiPopSedangProses) aiPopTutup(); });
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && !aiPopSedangProses && document.getElementById('aiPopOverlay').classList.contains('open')) aiPopTutup();
 });
 /*__AKHIR_BAGIAN_3__*/
 /* =================== PREVIEW / PAPER RENDERING (paginasi otomatis) =================== */
