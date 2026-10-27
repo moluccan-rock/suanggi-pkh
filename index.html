@@ -7,6 +7,10 @@
 <title>Suanggi PKH - Bukti Dukung Laporan Bulanan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>
+/* Terapkan tema tersimpan secepat mungkin (sebelum halaman digambar) agar tidak berkedip */
+(function(){try{var t=localStorage.getItem('suanggi_tema');if(t&&/^(teluk|maroon|kopi|malam|kaca)$/.test(t)){document.documentElement.setAttribute('data-tema',t);}}catch(e){}})();
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="role-locked">
@@ -149,6 +153,18 @@
       </div>
     </div>
     <div class="role-gate-body">
+      <div class="tema-picker" id="temaPicker" role="radiogroup" aria-label="Tema tampilan">
+        <span class="tema-label">Tema tampilan</span>
+        <div class="tema-dots">
+          <button type="button" class="tema-dot" data-tema="default" role="radio" aria-checked="true" aria-label="Tema Default" title="Default" style="background:linear-gradient(135deg,#7f1d1d 50%,#b8934a 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="teluk" role="radio" aria-checked="false" aria-label="Tema Teluk Ambon" title="Teluk Ambon" style="background:linear-gradient(135deg,#0B3954 50%,#F2B544 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="maroon" role="radio" aria-checked="false" aria-label="Tema Maroon Emas" title="Maroon Emas" style="background:linear-gradient(135deg,#5E1220 50%,#D4A64A 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="kopi" role="radio" aria-checked="false" aria-label="Tema Kopi" title="Kopi" style="background:linear-gradient(135deg,#33261E 50%,#E8D5BE 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="malam" role="radio" aria-checked="false" aria-label="Tema Malam" title="Malam" style="background:linear-gradient(135deg,#0A1018 50%,#F0B429 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="kaca" role="radio" aria-checked="false" aria-label="Tema Kaca" title="Kaca" style="background:linear-gradient(135deg,#0F4C6B 0%,#1B7F8E 55%,#FFD27A 100%);"></button>
+        </div>
+        <span class="tema-nama" id="temaNama">Default</span>
+      </div>
       <p class="instr">Pilih Jabatan</p>
       <div class="role-list" id="roleList"></div>
     </div>
@@ -185,6 +201,7 @@
     <div class="topbar-actions-col">
       <button class="btn btn-navy btn-to-step3-top" id="btnToStep3Top" type="button" disabled>Lanjut ke Edit Laporan &rarr;</button>
       <button class="btn btn-gold" id="btnPrint" type="button">Pratinjau &amp; Simpan ke PDF</button>
+      <button class="btn btn-logout-top" id="btnLogoutTop" type="button" title="Keluar dari aplikasi">&#x23FB; Keluar</button>
     </div>
   </div>
 </div>

@@ -146,6 +146,29 @@ const blob = Array.isArray(result) ? result[0] : result;
 const newName = (file.name || 'foto').replace(/\.(heic|heif|jpe?g|png)$/i, '') + '.jpg';
 return new File([blob], newName, { type: 'image/jpeg' });
 }
+/* ========== TEMA TAMPILAN ==========
+   Pilihan disimpan di perangkat (localStorage). Pemilih hanya ada di layar Pilih Jabatan.
+   Kertas laporan/PDF tidak terpengaruh (dikunci di CSS). */
+const TEMA_NAMA = { 'default':'Default', teluk:'Teluk Ambon', maroon:'Maroon Emas', kopi:'Kopi', malam:'Malam', kaca:'Kaca' };
+function temaTerapkan(nama, simpan){
+  if(!TEMA_NAMA[nama]) nama = 'default';
+  var root = document.documentElement;
+  if(nama === 'default') root.removeAttribute('data-tema'); else root.setAttribute('data-tema', nama);
+  if(simpan){ try{ if(nama === 'default') localStorage.removeItem('suanggi_tema'); else localStorage.setItem('suanggi_tema', nama); }catch(e){} }
+  var dots = document.querySelectorAll('#temaPicker .tema-dot');
+  for(var i = 0; i < dots.length; i++){ dots[i].setAttribute('aria-checked', dots[i].getAttribute('data-tema') === nama ? 'true' : 'false'); }
+  var label = document.getElementById('temaNama');
+  if(label) label.textContent = TEMA_NAMA[nama];
+}
+(function temaInit(){
+  var tersimpan = 'default';
+  try{ tersimpan = localStorage.getItem('suanggi_tema') || 'default'; }catch(e){}
+  temaTerapkan(tersimpan, false);
+  var dots = document.querySelectorAll('#temaPicker .tema-dot');
+  for(var i = 0; i < dots.length; i++){
+    dots[i].addEventListener('click', function(){ temaTerapkan(this.getAttribute('data-tema'), true); });
+  }
+})();
 /* ========== STATE ========== */
 let state = {
 jabatan: "",
@@ -512,6 +535,9 @@ function handleLogout(otomatis){
   }
 }
 document.getElementById('btnLogoutFloating').addEventListener('click', function(){
+  handleLogout(false);
+});
+document.getElementById('btnLogoutTop').addEventListener('click', function(){
   handleLogout(false);
 });
 
