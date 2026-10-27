@@ -20,6 +20,16 @@
 <button id="btnLogoutFloating" type="button" class="btn-logout-floating" style="display:none;" title="Keluar dari aplikasi">
   ⏻ Keluar
 </button>
+<div class="tema-picker" id="temaPicker" role="radiogroup" aria-label="Tema tampilan">
+        <div class="tema-dots">
+          <button type="button" class="tema-dot" data-tema="default" role="radio" aria-checked="true" aria-label="Tema Default" title="Default" style="background:linear-gradient(135deg,#7f1d1d 50%,#b8934a 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="teluk" role="radio" aria-checked="false" aria-label="Tema Teluk Ambon" title="Teluk Ambon" style="background:linear-gradient(135deg,#0B3954 50%,#F2B544 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="maroon" role="radio" aria-checked="false" aria-label="Tema Maroon Emas" title="Maroon Emas" style="background:linear-gradient(135deg,#5E1220 50%,#D4A64A 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="kopi" role="radio" aria-checked="false" aria-label="Tema Kopi" title="Kopi" style="background:linear-gradient(135deg,#33261E 50%,#E8D5BE 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="malam" role="radio" aria-checked="false" aria-label="Tema Malam" title="Malam" style="background:linear-gradient(135deg,#0A1018 50%,#F0B429 50%);"></button>
+          <button type="button" class="tema-dot" data-tema="kaca" role="radio" aria-checked="false" aria-label="Tema Kaca" title="Kaca" style="background:linear-gradient(135deg,#0F4C6B 0%,#1B7F8E 55%,#FFD27A 100%);"></button>
+        </div>
+      </div>
 
 <!-- ===================== GERBANG LOGIN & PENDAFTARAN (NIP + TOKEN) ===================== -->
 <div id="loginGate" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
@@ -153,18 +163,6 @@
       </div>
     </div>
     <div class="role-gate-body">
-      <div class="tema-picker" id="temaPicker" role="radiogroup" aria-label="Tema tampilan">
-        <span class="tema-label">Tema tampilan</span>
-        <div class="tema-dots">
-          <button type="button" class="tema-dot" data-tema="default" role="radio" aria-checked="true" aria-label="Tema Default" title="Default" style="background:linear-gradient(135deg,#7f1d1d 50%,#b8934a 50%);"></button>
-          <button type="button" class="tema-dot" data-tema="teluk" role="radio" aria-checked="false" aria-label="Tema Teluk Ambon" title="Teluk Ambon" style="background:linear-gradient(135deg,#0B3954 50%,#F2B544 50%);"></button>
-          <button type="button" class="tema-dot" data-tema="maroon" role="radio" aria-checked="false" aria-label="Tema Maroon Emas" title="Maroon Emas" style="background:linear-gradient(135deg,#5E1220 50%,#D4A64A 50%);"></button>
-          <button type="button" class="tema-dot" data-tema="kopi" role="radio" aria-checked="false" aria-label="Tema Kopi" title="Kopi" style="background:linear-gradient(135deg,#33261E 50%,#E8D5BE 50%);"></button>
-          <button type="button" class="tema-dot" data-tema="malam" role="radio" aria-checked="false" aria-label="Tema Malam" title="Malam" style="background:linear-gradient(135deg,#0A1018 50%,#F0B429 50%);"></button>
-          <button type="button" class="tema-dot" data-tema="kaca" role="radio" aria-checked="false" aria-label="Tema Kaca" title="Kaca" style="background:linear-gradient(135deg,#0F4C6B 0%,#1B7F8E 55%,#FFD27A 100%);"></button>
-        </div>
-        <span class="tema-nama" id="temaNama">Default</span>
-      </div>
       <p class="instr">Pilih Jabatan</p>
       <div class="role-list" id="roleList"></div>
     </div>

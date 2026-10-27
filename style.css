@@ -723,3 +723,13 @@ body:not(.role-locked) .btn-logout-floating{display:none !important;}
 @media (max-width:640px){ .tema-picker{gap:8px;} .tema-dot{width:34px;height:34px;} }
 html[data-tema="malam"] .step-item.done .step-label,
 html[data-tema="kaca"] .step-item.done .step-label{color:#7FE0C4;}
+
+/* ===== Pemilih tema: bulatan kecil tepat di bawah tombol Keluar (hanya layar Pilih Jabatan) ===== */
+.tema-picker{position:fixed;top:52px;right:14px;z-index:10001;display:none;margin:0;gap:0;padding:5px 8px;border-radius:999px;background:rgba(17,17,20,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+body.role-locked .tema-picker{display:flex;}
+.tema-picker .tema-dots{gap:7px;}
+.tema-dot,.tema-picker .tema-dot{width:16px;height:16px;border:1.5px solid rgba(255,255,255,.55);}
+.tema-dot:hover{transform:scale(1.2);}
+.tema-dot::after{content:'';position:absolute;inset:-7px;}
+.tema-dot[aria-checked="true"]{border-color:#fff;box-shadow:0 0 0 2px rgba(17,17,20,.9),0 0 0 3.5px #fff;}
+@media (max-width:640px){ .tema-picker{top:46px;right:8px;} .tema-dot,.tema-picker .tema-dot{width:18px;height:18px;} .tema-picker .tema-dots{gap:8px;} }
