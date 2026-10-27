@@ -110,6 +110,32 @@ const name = (file.name || '').toLowerCase();
 return type === 'image/heic' || type === 'image/heif' || type === 'image/heic-sequence' || type === 'image/heif-sequence'
 || name.endsWith('.heic') || name.endsWith('.heif');
 }
+/* Baca 32 byte pertama file untuk mengenali isi sebenarnya (nama/MIME bisa bohong,
+   mis. foto HEIC yang diberi nama .jpeg oleh iPhone/Mac saat dibagikan). */
+async function sniffFormatFile(file){
+try{
+let buf;
+const potong = file.slice(0, 32);
+if(potong.arrayBuffer){ buf = await potong.arrayBuffer(); }
+else{
+buf = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=> res(r.result); r.onerror = rej; r.readAsArrayBuffer(potong); });
+}
+const b = new Uint8Array(buf);
+const asc = (a, z)=> String.fromCharCode.apply(null, Array.prototype.slice.call(b, a, z));
+if(b.length >= 12 && asc(4, 8) === 'ftyp'){
+const brand = asc(8, 12).toLowerCase();
+if(['heic','heix','hevc','hevx','heim','heis','hevm','hevs','mif1','msf1','heif'].indexOf(brand) >= 0) return 'heic';
+if(brand === 'avif' || brand === 'avis') return 'avif';
+}
+if(b[0] === 0xFF && b[1] === 0xD8) return 'jpeg';
+if(b[0] === 0x89 && asc(1, 4) === 'PNG') return 'png';
+if(asc(0, 4) === 'RIFF' && asc(8, 12) === 'WEBP') return 'webp';
+if(asc(0, 3) === 'GIF') return 'gif';
+if(b[0] === 0x42 && b[1] === 0x4D) return 'bmp';
+if(asc(0, 4) === '%PDF') return 'pdf';
+}catch(e){}
+return '';
+}
 async function convertHeicToJpegFile(file){
 const ready = await ensureHeicConverter();
 if(!ready || !window.heic2any){
@@ -117,7 +143,7 @@ throw new Error('Komponen pengonversi HEIC (heic2any) tidak dapat dimuat — kem
 }
 const result = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
 const blob = Array.isArray(result) ? result[0] : result;
-const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
+const newName = (file.name || 'foto').replace(/\.(heic|heif|jpe?g|png)$/i, '') + '.jpg';
 return new File([blob], newName, { type: 'image/jpeg' });
 }
 /* ========== STATE ========== */
@@ -1166,28 +1192,108 @@ document.addEventListener('touchend', onEnd);
 }, {passive:false});
 }
 const DOK_MAX_DIM = 1800;
-async function fileToDisplaySafeDataUrl(file, maxDim, quality){
-const rawUrl = await fileToDataUrl(file);
-const img = await new Promise((resolve, reject)=>{
-const im = new Image();
-im.onload = ()=> resolve(im);
-im.onerror = reject;
-im.src = rawUrl;
-}).catch(()=>null);
-if(!img || !img.naturalWidth) return rawUrl;
-const w = img.naturalWidth, h = img.naturalHeight;
-const scale = Math.min(1, maxDim / Math.max(w, h));
-if(scale >= 1) return rawUrl;
-const canvas = document.createElement('canvas');
-canvas.width = Math.round(w * scale);
-canvas.height = Math.round(h * scale);
-const ctx = canvas.getContext('2d');
-ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-try{
-return canvas.toDataURL('image/jpeg', quality || 0.88);
-}catch(e){
-return rawUrl;
+/* ---- Pipeline foto yang aman untuk Safari (Mac/iPhone/iPad), Chrome, Edge, Firefox, Android ---- */
+function fotoKodeError(kode, pesan, asli){
+const e = new Error(pesan); e.kode = kode; e.asli = asli; return e;
 }
+function jedaUI(){ return new Promise(r=> setTimeout(r, 0)); }
+/* Decode ke sumber gambar. Urutan: createImageBitmap (orientasi EXIF dihormati) -> <img> via object URL -> <img> via data URL. */
+async function dekodeGambar(blob){
+if(typeof createImageBitmap === 'function'){
+try{
+const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+if(bmp && bmp.width) return { src: bmp, w: bmp.width, h: bmp.height, tutup: ()=>{ try{ bmp.close(); }catch(e){} } };
+}catch(e){}
+try{
+const bmp2 = await createImageBitmap(blob);
+if(bmp2 && bmp2.width) return { src: bmp2, w: bmp2.width, h: bmp2.height, tutup: ()=>{ try{ bmp2.close(); }catch(e){} } };
+}catch(e){}
+}
+const muatImg = (url)=> new Promise((resolve, reject)=>{
+const im = new Image();
+im.onload = ()=> (im.naturalWidth ? resolve(im) : reject(new Error('gambar kosong')));
+im.onerror = ()=> reject(new Error('gambar tidak dapat dibaca'));
+im.src = url;
+});
+let objUrl = null;
+try{
+if(window.URL && URL.createObjectURL){
+objUrl = URL.createObjectURL(blob);
+const im = await muatImg(objUrl);
+return { src: im, w: im.naturalWidth, h: im.naturalHeight, tutup: ()=>{ try{ URL.revokeObjectURL(objUrl); }catch(e){} } };
+}
+}catch(e){ if(objUrl){ try{ URL.revokeObjectURL(objUrl); }catch(_){} } }
+const durl = await fileToDataUrl(blob);
+const im2 = await muatImg(durl);
+return { src: im2, w: im2.naturalWidth, h: im2.naturalHeight, tutup: ()=>{} };
+}
+/* Gambar ke canvas, coba ukuran lebih kecil bila Safari menolak (batas memori canvas iOS). */
+function gambarKeJpegDataUrl(dec, maxDim, quality){
+let dim = maxDim;
+for(let coba = 0; coba < 4; coba++){
+const scale = Math.min(1, dim / Math.max(dec.w, dec.h));
+const cw = Math.max(1, Math.round(dec.w * scale));
+const ch = Math.max(1, Math.round(dec.h * scale));
+try{
+const canvas = document.createElement('canvas');
+canvas.width = cw; canvas.height = ch;
+const ctx = canvas.getContext('2d');
+if(ctx){
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, cw, ch);
+ctx.drawImage(dec.src, 0, 0, cw, ch);
+const out = canvas.toDataURL('image/jpeg', quality || 0.88);
+canvas.width = 1; canvas.height = 1; // lepas memori canvas (penting di iOS Safari)
+if(out && out.length > 100 && out.indexOf('data:image/jpeg') === 0) return out;
+}
+}catch(e){}
+dim = Math.round(dim * 0.7);
+}
+throw fotoKodeError('CANVAS', 'Memori browser tidak cukup untuk memproses foto ini.');
+}
+async function fotoKeDataUrl(file, maxDim, quality){
+const format = await sniffFormatFile(file);
+if(format === 'pdf') throw fotoKodeError('BUKAN_FOTO', 'File ini PDF, bukan foto. Unggah PDF lewat bagian Lampiran.');
+let blob = file;
+let dec = null;
+let errAsli = null;
+// 1) Coba decode apa adanya (Safari/macOS/iOS mengerti HEIC secara native).
+try{ dec = await dekodeGambar(blob); }catch(e){ errAsli = e; }
+// 2) Gagal & ternyata HEIC (menurut isi atau nama) -> konversi lewat heic2any, lalu decode ulang.
+if(!dec && (format === 'heic' || isHeicFile(file))){
+let konv;
+try{
+konv = await convertHeicToJpegFile(file);
+}catch(e){
+const offline = (typeof navigator !== 'undefined' && navigator.onLine === false) || !window.heic2any;
+throw fotoKodeError(offline ? 'HEIC_KOMPONEN' : 'HEIC_RUSAK',
+offline ? 'Komponen pengonversi HEIC tidak dapat dimuat (periksa koneksi internet / CDN diblokir).'
+        : 'Foto HEIC tidak dapat dikonversi (berkas mungkin rusak).', e);
+}
+try{ dec = await dekodeGambar(konv); }catch(e){ errAsli = e; }
+}
+if(!dec){
+throw fotoKodeError(format === 'avif' ? 'FORMAT' : 'DECODE',
+'Berkas tidak dapat dibaca sebagai foto (format tidak didukung atau berkas rusak/belum terunduh dari iCloud).', errAsli);
+}
+try{
+return gambarKeJpegDataUrl(dec, maxDim, quality);
+}finally{
+dec.tutup();
+}
+}
+async function fileToDisplaySafeDataUrl(file, maxDim, quality){
+return fotoKeDataUrl(file, maxDim, quality);
+}
+function pesanGagalFoto(daftar){
+// daftar: [{nama, kode, pesan}]
+const baris = daftar.map(d=> '- ' + d.nama + ' → ' + d.pesan).join('\n');
+const adaKomponen = daftar.some(d=> d.kode === 'HEIC_KOMPONEN');
+const adaDecode = daftar.some(d=> d.kode === 'DECODE' || d.kode === 'FORMAT');
+let saran = '';
+if(adaKomponen) saran += '\nUntuk foto HEIC: pastikan internet aktif lalu coba lagi.';
+if(adaDecode) saran += '\nSaran: buka foto di aplikasi Foto, lalu “Bagikan/Ekspor” sebagai JPEG (atau ambil tangkapan layar foto itu), kemudian unggah ulang. Jika foto berada di iCloud, tunggu sampai terunduh penuh ke perangkat.';
+return 'Sebagian foto gagal diproses dan tidak ditambahkan:\n' + baris + saran;
 }
 const dropDok = document.getElementById('dropDok');
 const f_dok = document.getElementById('f_dok');
@@ -1195,32 +1301,25 @@ const dropDokLabel = dropDok.querySelector('p');
 const dropDokLabelDefault = dropDokLabel ? dropDokLabel.textContent : '';
 dropDok.addEventListener('click', ()=> f_dok.click());
 f_dok.addEventListener('change', async ()=>{
-const files = Array.from(f_dok.files);
+const files = Array.from(f_dok.files || []);
 const gagal = [];
 for(let i=0; i<files.length; i++){
-let file = files[i];
+const file = files[i];
 try{
-if(isHeicFile(file)){
-if(dropDokLabel) dropDokLabel.textContent = files.length>1
-? `Mengonversi foto HEIC ${i+1}/${files.length}...`
-: `Mengonversi foto HEIC...`;
-file = await convertHeicToJpegFile(file);
-} else if(dropDokLabel && files.length>1){
-dropDokLabel.textContent = `Memproses foto ${i+1}/${files.length}...`;
-}
-const url = await fileToDisplaySafeDataUrl(file, DOK_MAX_DIM, 0.88);
-state.dok.push({name:file.name, url});
+if(dropDokLabel) dropDokLabel.textContent = files.length>1 ? `Memproses foto ${i+1}/${files.length}...` : 'Memproses foto...';
+await jedaUI();
+const url = await fotoKeDataUrl(file, DOK_MAX_DIM, 0.88);
+const nama = (file.name || 'foto').replace(/\.(heic|heif)$/i, '.jpg');
+state.dok.push({name:nama, url});
 }catch(err){
-console.error('Gagal memproses foto dokumentasi:', file && file.name, err);
-gagal.push((file && file.name) || 'file tidak dikenal');
+console.error('Gagal memproses foto dokumentasi:', file && file.name, err, err && err.asli);
+gagal.push({nama:(file && file.name) || 'file tidak dikenal', kode: err && err.kode, pesan: (err && err.kode) ? err.message : ('Terjadi kesalahan: ' + ((err && err.message) || err))});
 }
 }
 if(dropDokLabel) dropDokLabel.textContent = dropDokLabelDefault;
-f_dok.value='';
+try{ f_dok.value=''; }catch(e){}
 renderDokGrid(); renderPreview();
-if(gagal.length){
-alert('Sebagian foto gagal diproses dan tidak ditambahkan:\n- ' + gagal.join('\n- ') + '\nPastikan koneksi internet aktif (diperlukan sekali untuk memuat komponen pengonversi HEIC), lalu coba unggah ulang foto tersebut.');
-}
+if(gagal.length){ alert(pesanGagalFoto(gagal)); }
 });
 function renderDokGrid(){
 const grid = document.getElementById('dokGrid');
@@ -1293,8 +1392,13 @@ console.error('Gagal memproses PDF lampiran:', err);
 alert(buildLampPdfErrorMessage(file, err));
 }
 } else {
-const url = await fileToDataUrl(file);
-state.lamp.push({name:file.name, url, kind:'image'});
+try{
+const url = await fotoKeDataUrl(file, 2200, 0.9);
+state.lamp.push({name:(file.name||'gambar').replace(/\.(heic|heif)$/i, '.jpg'), url, kind:'image'});
+}catch(err){
+console.error('Gagal memproses gambar lampiran:', file.name, err, err && err.asli);
+alert('Gambar lampiran "' + file.name + '" gagal diproses:\n' + ((err && err.kode) ? err.message : ((err && err.message) || err)));
+}
 }
 }
 if(dropLampLabel) dropLampLabel.textContent = dropLampLabelDefault;
