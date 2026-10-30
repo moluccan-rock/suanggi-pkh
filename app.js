@@ -1456,8 +1456,6 @@ const P2K2_DASAR = [
   'Peraturan Menteri Sosial Republik Indonesia Nomor 8 Tahun 2026 tentang Program Keluarga Harapan.',
   'Keputusan Direktur Jenderal Perlindungan dan Jaminan Sosial Nomor 20/3/HK.01/3/2025.'
 ];
-<<<<<<< HEAD
-=======
 const P2K2_RK_MAKS = 1000;
 function p2kPotong(t){
   t = String(t||'').trim();
@@ -1465,7 +1463,6 @@ function p2kPotong(t){
   var c = t.slice(0, P2K2_RK_MAKS), i = Math.max(c.lastIndexOf('. '), c.lastIndexOf('.\n'));
   return (i > 500 ? c.slice(0, i + 1) : c).trim();
 }
->>>>>>> e29ae2b (P2K2: batas 1000 karakter, hapus garis)
 const P2K2_INGAT_KEY = 'suanggi_p2k2_ingat';
 function isP2K2Aksi(item, aksiText){
   return !!item && /p2k2/i.test(String(item.rhk || '') + ' ' + String(item.indikator || '')) &&
@@ -1593,10 +1590,7 @@ function p2k2Setup(){
   document.getElementById('p2k_namaView').value = state.nama || '';
   var lbl = document.getElementById('p2k_lblPendamping');
   if(lbl) lbl.firstChild.textContent = 'Nama ' + (p2kJabatanLabel() || 'Pendamping');
-<<<<<<< HEAD
-=======
   var _rc = document.getElementById('p2k_rkCount'); if(_rc) _rc.textContent = (state.p2k2.rangkuman||'').length + ' / ' + P2K2_RK_MAKS + ' karakter';
->>>>>>> e29ae2b (P2K2: batas 1000 karakter, hapus garis)
   document.getElementById('p2k_pemSaya').checked = !!state.p2k2.pemateriSaya;
   set('p2k_pemSayaTxt', 'Saya sebagai pemateri (' + (state.nama || 'nama login') + ', ' + (p2kJabatanLabel() || 'jabatan') + ')');
   p2k2RenderPemateri();
@@ -1614,13 +1608,9 @@ function p2k2SetTanggal(tglKegiatan, tglLaporan){
     var el = document.getElementById(P2K2_ID[k]); if(!el) return;
     var ev = (el.tagName === 'SELECT') ? 'change' : 'input';
     el.addEventListener(ev, function(){
-<<<<<<< HEAD
-      state.p2k2[k] = el.value;
-=======
       if(k === 'rangkuman' && el.value.length > P2K2_RK_MAKS) el.value = el.value.slice(0, P2K2_RK_MAKS);
       state.p2k2[k] = el.value;
       if(k === 'rangkuman'){ var c = document.getElementById('p2k_rkCount'); if(c) c.textContent = el.value.length + ' / ' + P2K2_RK_MAKS + ' karakter'; }
->>>>>>> e29ae2b (P2K2: batas 1000 karakter, hapus garis)
       if(P2K2_INGAT.indexOf(k) >= 0) p2k2Ingat();
       if(k === 'rangkuman' || k === 'jamMulai' || k === 'jamSelesai' || k === 'hadir' || k === 'sakit' || k === 'alpa' || k === 'tempat') renderPreview(); else p2k2Regen();
     });
@@ -2210,13 +2200,8 @@ function aiBangunPromptP2k2(fakta){
   return 'Susun isi kolom "Rangkuman Kegiatan" pada Laporan Kegiatan Pertemuan Peningkatan Kemampuan Keluarga (P2K2), Program Keluarga Harapan (PKH), Kementerian Sosial RI.\n' +
     'KONTEKS:\n- Jabatan pelapor: ' + (p2kJabatanLabel() || state.jabatan) + '\n- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
     'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; jangan mengarang angka, tanggal, nama tempat, atau nama orang):\n' + (daftar || '- (tidak ada fakta tambahan)') + '\n' + tambahan + '\n' +
-<<<<<<< HEAD
-    'TUGAS: tulis 2-3 paragraf naratif berbahasa Indonesia baku, orang ketiga, yang menggambarkan jalannya pertemuan (pembukaan, penyampaian materi, diskusi/tanya jawab, simulasi bila ada, dan penutup) serta keterlibatan KPM. ' +
-    'Jangan menyebut nama atau NIK KPM. Jangan menulis judul, daftar bernomor, atau tanda markdown. Bila suatu hal tidak diberikan, tulis kalimat umum yang wajar untuk P2K2 tanpa mengarang angka.';
-=======
     'TUGAS: tulis 2 paragraf naratif berbahasa Indonesia baku, orang ketiga, yang menggambarkan jalannya pertemuan (pembukaan, penyampaian materi, diskusi/tanya jawab, simulasi bila ada, dan penutup) serta keterlibatan KPM. ' +
     'Jangan menyebut nama atau NIK KPM. Jangan menulis judul, daftar bernomor, atau tanda markdown. Bila suatu hal tidak diberikan, tulis kalimat umum yang wajar untuk P2K2 tanpa mengarang angka. BATAS KERAS: seluruh teks maksimal 900 karakter termasuk spasi.';
->>>>>>> e29ae2b (P2K2: batas 1000 karakter, hapus garis)
 }
 async function aiP2k2Kirim(tanpaFakta){
   if(aiPopSedangProses) return;
@@ -2243,10 +2228,7 @@ async function aiP2k2Kirim(tanpaFakta){
     var teks = String(await callClaudeAI_withCredit(aiBangunPromptP2k2(tanpaFakta ? [] : faktaPakai)) || '').trim();
     if(!teks) throw new Error('AI tidak mengembalikan teks.');
     teks = teks.replace(/^#+\s.*$/gm, '').replace(/\*\*/g, '').trim();
-<<<<<<< HEAD
-=======
     teks = p2kPotong(teks);
->>>>>>> e29ae2b (P2K2: batas 1000 karakter, hapus garis)
     var ta = document.getElementById('p2k_rangkuman');
     ta.value = teks; ta.dispatchEvent(new Event('input'));
     aiPopTutup();
@@ -2512,10 +2494,6 @@ const headerHtml = modeP2k ? `
 <div class="paper-head">
 <img class="kop-img" src="${KOP_IMAGE_DATA_URL}" alt="Kop Surat Direktorat Perlindungan Sosial Non Kebencanaan">
 </div>
-<<<<<<< HEAD
-<hr class="rule">
-=======
->>>>>>> e29ae2b (P2K2: batas 1000 karakter, hapus garis)
 ${p2kTitle()}
 ` : `
 <div class="paper-head">
