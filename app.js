@@ -205,7 +205,16 @@ const SafeStorage = {
  * pengisian form (NIP tidak perlu diketik ulang) — Token WAJIB selalu
  * diketik ulang setiap kali membuka aplikasi, sepanjang masa akses berlaku.
  */
+/* Pemanasan server: kirim ping ringan saat halaman dibuka, supaya Apps Script sudah "bangun"
+   ketika pengguna selesai mengetik NIP dan Token. Gagal pun tidak masalah. */
+function pemanasanServer(){
+  try{
+    if(!GAS_URL || GAS_URL.indexOf('PASTE_') === 0) return;
+    fetch(GAS_URL + '?action=ping', { method:'GET', mode:'no-cors', cache:'no-store' }).catch(function(){});
+  }catch(e){}
+}
 function cekStatusLogin(){
+  pemanasanServer();
   var saved = null;
   try{ saved = JSON.parse(SafeStorage.get('suanggi_login') || 'null'); }catch(e){ saved = null; }
 
@@ -317,6 +326,7 @@ function prosesLoginToken(){
       if(res.status === 'success'){
         currentUser = res.data;
         currentUser.token = token;
+        if(res.jabatanData){ window.__jabatanDariLogin = { data: res.jabatanData, meta: res.jabatanMeta || {} }; }
         SafeStorage.set('suanggi_login', JSON.stringify({ nip: nip, ts: Date.now() })); // token SENGAJA tidak disimpan (lihat catatan keamanan di cekStatusLogin)
         // Bola tetap memantul; gerbang login baru ditutup setelah daftar jabatan selesai dimuat.
         masukKeAplikasi(true);
@@ -420,7 +430,11 @@ function masukKeAplikasi(tahanGerbang){
   // itu ditangkap di server dan dikirim balik sebagai {success:false, message}
   // (bukan HTTP error) — maka di sini pengecekannya memakai res.success,
   // bukan lagi mengandalkan withFailureHandler/exception seperti sebelumnya.
-  panggilAPI('ambilDataJabatan', { nip: currentUser.nip, token: currentUser.token }).then(function(res){
+  var pre = window.__jabatanDariLogin; window.__jabatanDariLogin = null;
+  var ambilJabatan = pre
+    ? Promise.resolve({ success: true, jabatanData: pre.data, jabatanMeta: pre.meta })
+    : panggilAPI('ambilDataJabatan', { nip: currentUser.nip, token: currentUser.token });
+  ambilJabatan.then(function(res){
       if(res.success){
         JABATAN_DATA = res.jabatanData || {};
         JABATAN_META = res.jabatanMeta || {};
@@ -2138,7 +2152,7 @@ function aiBangunPromptFakta(item, aksiText, fakta, peta, judulKpm){
     'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; yang tidak tertulis di sini JANGAN dikarang, termasuk angka, tanggal, nama tempat, dan nama orang):\n' +
     daftar + blokKpm + '\n' +
     'TUGAS: tulis dua bagian, dipisahkan oleh satu baris yang berisi persis ' + AI_PENANDA_HASIL + '\n' +
-    '1) Bagian pertama = Uraian Pelaksanaan/Realisasi Kegiatan (1-2 paragraf naratif yang merangkai waktu, wilayah, kegiatan, dan pihak yang terlibat menjadi satu kesatuan kalimat yang mengalir).\n' +
+    '1) Bagian pertama = Uraian Pelaksanaan/Realisasi Kegiatan (1-satu paragraf naratif tunggal tanpa pemisah baris yang merangkai waktu, wilayah, kegiatan, dan pihak yang terlibat menjadi satu kesatuan kalimat yang mengalir).\n' +
     '2) Bagian kedua = Hasil yang Dicapai (1 paragraf naratif: capaian dalam angka bila diberikan, temuan, kendala, dan tindak lanjut).\n' +
     'Hanya untuk rencana aksi di atas. Jika suatu hal tidak diberikan, tulis kalimat umum yang sesuai RHK tanpa mengarang angka, atau gunakan penanda [isi sesuai data lapangan]. Jangan menulis judul bagian.';
 }
@@ -2228,7 +2242,7 @@ async function aiP2k2Kirim(tanpaFakta){
     var teks = String(await callClaudeAI_withCredit(aiBangunPromptP2k2(tanpaFakta ? [] : faktaPakai)) || '').trim();
     if(!teks) throw new Error('AI tidak mengembalikan teks.');
     teks = teks.replace(/^#+\s.*$/gm, '').replace(/\*\*/g, '').trim();
-    teks = p2kPotong(teks);
+    teks = p2kPotong(teks.replace(/\s*\n+\s*/g, ' '));
     var ta = document.getElementById('p2k_rangkuman');
     ta.value = teks; ta.dispatchEvent(new Event('input'));
     aiPopTutup();
@@ -2398,8 +2412,7 @@ blocks.push(p2kTabel(
 p2kBandRow('E. ISI KEGIATAN') +
 '<tr><th class="p2k-th">Jumlah Peserta Hadir</th><td colspan="3">Hadir : '+esc(angka(p.hadir))+' orang<br>Sakit : '+esc(angka(p.sakit))+' orang<br>Alpa : '+esc(angka(p.alpa))+' orang</td></tr>'
 ).replace('class="p2k-tbl"','class="p2k-tbl p2k-nojoin"'));
-const rk = (p.rangkuman||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
-if(!rk.length) rk.push('');
+const rk = [String(p.rangkuman||'').replace(/\s+/g,' ').trim()];
 rk.forEach((par, i)=>{
 const last = i === rk.length - 1;
 blocks.push('<table class="p2k-tbl p2k-nojoin"><colgroup><col style="width:23%"><col style="width:77%"></colgroup><tbody><tr><th class="p2k-th p2k-top '+(i===0?'':'p2k-nolabel')+'">'+(i===0?'Rangkuman Kegiatan':'&nbsp;')+'</th><td class="p2k-top p2k-rk'+(last?' p2k-rk-last':'')+'">'+(par ? esc(par) : '&nbsp;')+'</td></tr></tbody></table>');
