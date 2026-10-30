@@ -178,7 +178,8 @@ bulan:"Agustus", tahun:"2026", nama:"", nip:"", lokasi:"Ambon", tanggal:"",
 umum:"", maksud:"", ruang:"", pendahuluanTouched:false,
 dasar:["Undang-Undang Nomor 13 Tahun 2011 tentang Penanganan Fakir Miskin.","Peraturan Menteri Sosial Nomor 8 Tahun 2026 tentang Program Keluarga Harapan.","Peraturan Menteri Sosial Nomor 8 Tahun 2022 tentang Tata Naskah Dinas di Lingkungan Kementerian Sosial."],
 bUraian:"", hasil:"", kesimpulan:"", saran:"", penutup:"", kegiatanTouched:false,
-ttd:null, dok:[], lamp:[]
+ttd:null, dok:[], lamp:[],
+p2k2:{noUrut:'',noKode:'',desa:'',kec:'',jenisKab:'Kota',kab:'',prov:'',tglKegiatan:'',jamMulai:'',jamSelesai:'',tempat:'',pemateriSaya:true,pemateriLain:[],materi:'',modul:'',hadir:'',sakit:'',alpa:'',rangkuman:''}
 };
 // Salinan bersih nilai awal 'state' — dipakai untuk reset total saat logout
 // TANPA location.reload() (lihat penjelasan bug di handleLogout()).
@@ -727,6 +728,7 @@ document.getElementById('btnToStep3Top').disabled = !siap; // versi sticky di to
 function lanjutKeEditLaporan(){
 goToStep(3);
 renderBSummary();
+p2k2Setup();
 maybeAutofillPendahuluan();
 maybeAutofillKegiatan();
 renderPreview();
@@ -1444,6 +1446,179 @@ wrap.querySelectorAll('[data-lamp-del]').forEach(btn=>{
 btn.addEventListener('click', ()=>{ state.lamp.splice(+btn.dataset.lampDel,1); renderLampList(); renderPreview(); });
 });
 }
+/* =================== RHK 2 — LAPORAN KEGIATAN P2K2 (format resmi) ===================
+   Hanya aktif untuk RHK P2K2 dengan rencana aksi "Melaksanakan Pertemuan Peningkatan
+   Kemampuan Keluarga (P2K2)". RHK lain tidak tersentuh. */
+const P2K2_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const P2K2_MATERI_UMUM = 'P2K2 Adaptif, materi tambahan, atau isu-isu yang relevan di masyarakat sesuai dengan kondisi terkini atau sesuai kebutuhan';
+const P2K2_DASAR = [
+  'Undang-Undang Nomor 11 Tahun 2009 tentang Kesejahteraan Sosial.',
+  'Peraturan Menteri Sosial Republik Indonesia Nomor 8 Tahun 2026 tentang Program Keluarga Harapan.',
+  'Keputusan Direktur Jenderal Perlindungan dan Jaminan Sosial Nomor 20/3/HK.01/3/2025.'
+];
+const P2K2_INGAT_KEY = 'suanggi_p2k2_ingat';
+function isP2K2Aksi(item, aksiText){
+  return !!item && /p2k2/i.test(String(item.rhk || '') + ' ' + String(item.indikator || '')) &&
+    /^melaksanakan\s+pertemuan/i.test(String(aksiText || '').trim());
+}
+function isP2K2(){ return isP2K2Aksi(getSelectedRhk(), getSelectedAksiText()); }
+function p2kJabatanLabel(){ return (JABATAN_META[state.jabatan] || {}).label || state.jabatan || ''; }
+function p2kKapital(t){
+  return String(t || '').trim().replace(/\s+/g, ' ').split(' ').map(function(w){
+    return w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w;
+  }).join(' ');
+}
+function p2kTgl(iso){
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if(!m) return '';
+  return (+m[3]) + ' ' + P2K2_BULAN[(+m[2]) - 1] + ' ' + m[1];
+}
+function p2kBulanAngka(){
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(state.p2k2.tglKegiatan || '');
+  var n = m ? +m[2] : (P2K2_BULAN.indexOf(state.bulan) + 1);
+  return n > 0 ? (n < 10 ? '0' + n : String(n)) : '..';
+}
+function p2kTahun(){
+  var m = /^(\d{4})-/.exec(state.p2k2.tglKegiatan || '');
+  return m ? m[1] : (state.tahun || '....');
+}
+function p2kNomor(spasi){
+  var u = (state.p2k2.noUrut || '').trim() || '…..';
+  var k = (state.p2k2.noKode || '').trim() || '……………………………';
+  return u + (spasi ? ' / ' : '/') + 'P2K2/' + p2kBulanAngka() + '/' + p2kTahun() + '/' + k;
+}
+function p2kWilayah(){
+  var p = state.p2k2, bagian = [];
+  if((p.kec || '').trim()) bagian.push('Kecamatan ' + p2kKapital(p.kec));
+  if((p.kab || '').trim()) bagian.push((p.jenisKab === 'Kabupaten' ? 'Kabupaten ' : 'Kota ') + p2kKapital(p.kab));
+  if((p.prov || '').trim()) bagian.push('Provinsi ' + p2kKapital(p.prov));
+  return bagian.join(' ') || 'wilayah dampingan';
+}
+function p2kMateri(){ return (state.p2k2.materi || '').trim() || P2K2_MATERI_UMUM; }
+function p2kModul(){ return (state.p2k2.modul || '').trim() || p2kMateri(); }
+function p2kTglKegiatanTeks(){ return p2kTgl(state.p2k2.tglKegiatan) || '..........................'; }
+
+/* Teks Pendahuluan, Simpulan, Penutup — kalimat mengikuti dokumen referensi */
+function p2k2TeksPendahuluan(){
+  var w = p2kWilayah(), materi = p2kMateri(), modul = p2kModul();
+  var umum =
+    'Pertemuan Peningkatan Kemampuan Keluarga (P2K2) merupakan proses belajar terstruktur untuk mempercepat perubahan perilaku Keluarga Penerima Manfaat (KPM) PKH dalam bidang Kesehatan, Pendidikan, Ekonomi, Perlindungan Anak, dan Kesejahteraan Sosial dan merupakan salah satu kegiatan utama dalam Program Keluarga Harapan (PKH) yang bertujuan menyediakan wadah belajar bagi KPM PKH, menambah wawasan dan mengubah perilaku, melaksanakan edukasi secara berkala kepada KPM PKH, dan memberikan dukungan kepada KPM untuk menuju kemandirian khususnya di ' + w + ' yang dilakukan secara rutin sesuai jadwal yang telah ditetapkan.\n' +
+    'Laporan ini disusun sebagai bentuk pertanggungjawaban dan dokumentasi kegiatan P2K2 yang telah dilaksanakan pada ' + p2kTglKegiatanTeks() + '. Pelaksanaan P2K2 melibatkan pendamping sosial PKH sebagai fasilitator dan KPM di ' + w + ' sebagai peserta pertemuan. Kegiatan berlangsung dengan metode diskusi kelompok, penyampaian materi ' + materi + ', tanya jawab, dan simulasi dengan tema modul ' + modul + ' yang ditetapkan oleh Kementerian Sosial.';
+  var maksud = [
+    'Memberikan informasi lengkap mengenai pelaksanaan P2K2 di ' + w + '.',
+    'Menjadi bahan evaluasi terhadap hasil capaian kegiatan.',
+    'Meningkatkan pengetahuan KPM tentang ' + materi + '.',
+    'Menumbuhkan perilaku positif dan kemandirian dalam keluarga.'
+  ].join('\n');
+  var ruang = [
+    'Ruang lingkup kegiatan P2K2 yang dilaksanakan meliputi:',
+    'Persiapan materi ' + materi + ' dan jadwal pertemuan.',
+    'Koordinasi dengan KPM mengenai lokasi dan waktu pelaksanaan.',
+    'Pelaksanaan pertemuan sesuai modul ' + modul + '.',
+    'Fasilitasi diskusi, penyampaian materi ' + materi + ', dan praktik sederhana.',
+    'Dokumentasi pertemuan.',
+    'Rekapitulasi hadir peserta.'
+  ].join('\n');
+  return {umum: umum, maksud: maksud, ruang: ruang};
+}
+function p2k2TeksPenutupan(){
+  return {
+    kesimpulan: 'Pelaksanaan Pertemuan Peningkatan Kemampuan Keluarga (P2K2) berjalan dengan baik, tertib. KPM mampu memahami materi yang diberikan dan menunjukkan antusiasme dan keterlibatan aktif dalam diskusi, yang menunjukkan bahwa kegiatan ini memberikan dampak pada perubahan perilaku serta peningkatan kemampuan keluarga dalam hal ' + p2kMateri() + '.',
+    penutup: 'Demikian laporan pelaksanaan P2K2 ini disusun sebagai bentuk pertanggungjawaban dan dokumentasi kegiatan pelaksanaan tugas ' + (p2kJabatanLabel() || 'Pendamping Sosial PKH') + '. Semoga kegiatan ini terus memberikan manfaat bagi peningkatan kualitas hidup Keluarga Penerima Manfaat PKH.'
+  };
+}
+
+/* Formulir di halaman Edit Laporan */
+const P2K2_ID = {noUrut:'p2k_noUrut', noKode:'p2k_noKode', desa:'p2k_desa', kec:'p2k_kec', jenisKab:'p2k_jenisKab', kab:'p2k_kab', prov:'p2k_prov',
+  tglKegiatan:'p2k_tglKegiatan', jamMulai:'p2k_jamMulai', jamSelesai:'p2k_jamSelesai', tempat:'p2k_tempat',
+  materi:'p2k_materi', modul:'p2k_modul', hadir:'p2k_hadir', sakit:'p2k_sakit', alpa:'p2k_alpa', rangkuman:'p2k_rangkuman'};
+const P2K2_INGAT = ['kec','jenisKab','kab','prov','noKode'];
+function p2k2Ingat(){
+  var o = {}; P2K2_INGAT.forEach(function(k){ o[k] = state.p2k2[k] || ''; });
+  SafeStorage.set(P2K2_INGAT_KEY, JSON.stringify(o));
+}
+function p2k2MuatIngat(){
+  try{
+    var o = JSON.parse(SafeStorage.get(P2K2_INGAT_KEY) || '{}');
+    P2K2_INGAT.forEach(function(k){ if(!state.p2k2[k] && o[k]) state.p2k2[k] = String(o[k]).slice(0, 80); });
+  }catch(e){}
+}
+var p2k2RegenTimer = null;
+function p2k2Regen(){
+  clearTimeout(p2k2RegenTimer);
+  p2k2RegenTimer = setTimeout(function(){
+    if(!isP2K2()) return;
+    var jalan = false;
+    if(!state.pendahuluanTouched){ autofillPendahuluan(); jalan = true; }
+    if(!state.kegiatanTouched){ autofillKegiatan(); jalan = true; }
+    if(!jalan) renderPreview();
+  }, 250);
+}
+function p2k2RenderPemateri(){
+  var wrap = document.getElementById('p2k_pemWrap'); if(!wrap) return;
+  wrap.textContent = '';
+  state.p2k2.pemateriLain.forEach(function(p, i){
+    var row = document.createElement('div'); row.className = 'p2k-pem-row';
+    var a = document.createElement('input'); a.type = 'text'; a.maxLength = 120; a.placeholder = 'Nama pemateri'; a.value = p.nama || ''; a.setAttribute('aria-label', 'Nama pemateri ' + (i + 1));
+    var b = document.createElement('input'); b.type = 'text'; b.maxLength = 160; b.placeholder = 'Jabatan / instansi'; b.value = p.jabatan || ''; b.setAttribute('aria-label', 'Jabatan pemateri ' + (i + 1));
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'p2k-pem-hapus'; x.textContent = '×'; x.setAttribute('aria-label', 'Hapus pemateri ' + (i + 1));
+    a.addEventListener('input', function(){ p.nama = a.value; renderPreview(); });
+    b.addEventListener('input', function(){ p.jabatan = b.value; renderPreview(); });
+    x.addEventListener('click', function(){ state.p2k2.pemateriLain.splice(i, 1); p2k2RenderPemateri(); renderPreview(); });
+    row.appendChild(a); row.appendChild(b); row.appendChild(x); wrap.appendChild(row);
+  });
+}
+function p2k2Setup(){
+  var aktif = isP2K2();
+  var tampil = function(id, ya){ var e = document.getElementById(id); if(e) e.style.display = ya ? '' : 'none'; };
+  tampil('p2k2Wrap', aktif); tampil('bUmumWrap', !aktif); tampil('cUmumWrap', !aktif); tampil('f_saran', !aktif);
+  var set = function(id, t){ var e = document.getElementById(id); if(e) e.textContent = t; };
+  set('lblUmum', aktif ? 'Umum' : 'Latar Belakang / Gambaran Umum');
+  set('letterD', aktif ? 'C' : 'D'); set('titleD', aktif ? 'Simpulan' : 'Kesimpulan dan Saran'); set('lblKes', aktif ? 'Simpulan' : 'Kesimpulan & Saran');
+  set('letterE', aktif ? 'D' : 'E');
+  if(!aktif) return;
+  p2k2MuatIngat();
+  Object.keys(P2K2_ID).forEach(function(k){ var el = document.getElementById(P2K2_ID[k]); if(el) el.value = state.p2k2[k] || ''; });
+  document.getElementById('p2k_tglLaporan').value = state.tanggal || '';
+  document.getElementById('p2k_namaView').value = state.nama || '';
+  var lbl = document.getElementById('p2k_lblPendamping');
+  if(lbl) lbl.firstChild.textContent = 'Nama ' + (p2kJabatanLabel() || 'Pendamping');
+  document.getElementById('p2k_pemSaya').checked = !!state.p2k2.pemateriSaya;
+  set('p2k_pemSayaTxt', 'Saya sebagai pemateri (' + (state.nama || 'nama login') + ', ' + (p2kJabatanLabel() || 'jabatan') + ')');
+  p2k2RenderPemateri();
+}
+function p2k2SetTanggal(tglKegiatan, tglLaporan){
+  state.p2k2.tglKegiatan = tglKegiatan || '';
+  var a = document.getElementById('p2k_tglKegiatan'); if(a) a.value = state.p2k2.tglKegiatan;
+  var f = document.getElementById('f_tanggal');
+  if(f){ f.value = tglLaporan || ''; state.tanggal = f.value; }
+  var b = document.getElementById('p2k_tglLaporan'); if(b) b.value = state.tanggal || '';
+  p2k2Regen();
+}
+(function p2k2Pasang(){
+  Object.keys(P2K2_ID).forEach(function(k){
+    var el = document.getElementById(P2K2_ID[k]); if(!el) return;
+    var ev = (el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(ev, function(){
+      state.p2k2[k] = el.value;
+      if(P2K2_INGAT.indexOf(k) >= 0) p2k2Ingat();
+      if(k === 'rangkuman' || k === 'jamMulai' || k === 'jamSelesai' || k === 'hadir' || k === 'sakit' || k === 'alpa' || k === 'tempat') renderPreview(); else p2k2Regen();
+    });
+  });
+  var tl = document.getElementById('p2k_tglLaporan'), ft = document.getElementById('f_tanggal');
+  if(tl && ft){
+    tl.addEventListener('input', function(){ ft.value = tl.value; ft.dispatchEvent(new Event('input')); });
+    ft.addEventListener('input', function(){ tl.value = ft.value; });
+  }
+  var cek = document.getElementById('p2k_pemSaya');
+  if(cek) cek.addEventListener('change', function(){ state.p2k2.pemateriSaya = cek.checked; renderPreview(); });
+  var tam = document.getElementById('p2k_btnPem');
+  if(tam) tam.addEventListener('click', function(){
+    state.p2k2.pemateriLain.push({nama:'', jabatan:''}); p2k2RenderPemateri();
+    var r = document.querySelectorAll('#p2k_pemWrap .p2k-pem-row'); if(r.length) r[r.length - 1].querySelector('input').focus();
+  });
+})();
+
 /* =================== A. PENDAHULUAN: AUTO-FILL DARI RHK (umum) =================== */
 state.pendahuluanSrc = {rhkNo:null, aksiIdx:null};
 function buildPendahuluanText(){
@@ -1453,6 +1628,7 @@ const jabatanLabel = (JABATAN_META[state.jabatan]||{}).label || state.jabatan;
 if(!item){
 return {umum:'', maksud:'', ruang:''};
 }
+if(isP2K2Aksi(item, aksiText)) return p2k2TeksPendahuluan();
 const umum = `Laporan bulanan ini disusun sebagai bentuk pertanggungjawaban pelaksanaan tugas ${jabatanLabel} pada Program Keluarga Harapan (PKH), Direktorat Perlindungan Sosial Non Kebencanaan, Kementerian Sosial Republik Indonesia. Pelaksanaan tugas pada bulan berjalan diarahkan pada pencapaian Rencana Hasil Kerja (RHK) berupa "${item.rhk}", sebagai bagian dari upaya "${item.rhkPimpinan}", dengan Indikator Kinerja Individu "${item.indikator}".`;
 const maksud = `Laporan ini dimaksudkan untuk memberikan gambaran dan informasi mengenai capaian pelaksanaan Rencana Hasil Kerja (RHK) "${item.rhk}" pada bulan ${state.bulan} ${state.tahun}, khususnya rencana aksi "${aksiText}", sekaligus sebagai bahan evaluasi kinerja dan dasar penyusunan rencana kerja pada periode berikutnya.`;
 const ruang = `Ruang lingkup laporan ini mencakup pelaksanaan rencana aksi "${aksiText}" dalam rangka pencapaian Rencana Hasil Kerja (RHK) "${item.rhk}" sesuai dengan Indikator Kinerja Individu "${item.indikator}" pada jabatan ${jabatanLabel}, yang dilaksanakan selama bulan ${state.bulan} ${state.tahun}.`;
@@ -1461,6 +1637,11 @@ return {umum, maksud, ruang};
 function autofillPendahuluan(){
 const t = buildPendahuluanText();
 state.umum = t.umum; state.maksud = t.maksud; state.ruang = t.ruang;
+if(isP2K2()){
+state.dasar = P2K2_DASAR.slice(); state.dasarP2k2 = true; renderDasar();
+} else if(state.dasarP2k2){
+state.dasar = JSON.parse(JSON.stringify(STATE_AWAL.dasar)); state.dasarP2k2 = false; renderDasar();
+}
 document.getElementById('f_umum').value = t.umum;
 document.getElementById('f_maksud').value = t.maksud;
 document.getElementById('f_ruang').value = t.ruang;
@@ -1491,6 +1672,10 @@ const aksiText = getSelectedAksiText();
 const jabatanLabel = (JABATAN_META[state.jabatan]||{}).label || state.jabatan;
 if(!item){
 return {bUraian:'', hasil:'', kesimpulan:'', saran:'', penutup:''};
+}
+if(isP2K2Aksi(item, aksiText)){
+const pt = p2k2TeksPenutupan();
+return {bUraian:'', hasil:'', kesimpulan:pt.kesimpulan, saran:'', penutup:pt.penutup};
 }
 const bUraian = `Pada bulan ${state.bulan} ${state.tahun}, dilaksanakan rencana aksi "${aksiText}" dalam rangka pencapaian Rencana Hasil Kerja (RHK) "${item.rhk}", sesuai dengan Indikator Kinerja Individu "${item.indikator}". Kegiatan dilaksanakan secara bertahap dan berkesinambungan sesuai dengan tugas dan tanggung jawab ${jabatanLabel} pada wilayah kerja masing-masing, dengan tetap memperhatikan data dan kondisi Keluarga Penerima Manfaat (KPM) di lapangan.`;
 const hasil = `Pelaksanaan rencana aksi "${aksiText}" pada bulan ${state.bulan} ${state.tahun} secara umum berjalan dengan baik dan menunjukkan perkembangan yang positif terhadap pencapaian Indikator Kinerja Individu "${item.indikator}". Kegiatan dapat diselesaikan sesuai dengan target dan jadwal yang direncanakan, sebagai bagian dari kontribusi terhadap pencapaian RHK "${item.rhk}", meskipun masih terdapat sejumlah kendala teknis maupun non-teknis di lapangan yang ditindaklanjuti sesuai prosedur yang berlaku.`;
@@ -1704,7 +1889,17 @@ function aiKunciSpec(item, aksiText){
   }
   return kunci;
 }
+var AI_SPEC_P2K2 = [
+  {id:'p_tglK', label:'Tanggal kegiatan P2K2 *', type:'date'},
+  {id:'p_tglL', label:'Tanggal laporan (tanggal pengisian) *', type:'date'},
+  {id:'p_materi', label:'Materi atau topik yang dibahas', type:'text', ph:'Contoh: Modul Pengasuhan dan Pendidikan Anak, Sesi 1'},
+  {id:'p_metode', label:'Metode yang dipakai', type:'multi', opsi:['Ceramah dan diskusi kelompok','Tanya jawab','Simulasi / praktik sederhana','Permainan edukatif','Pemutaran video']},
+  {id:'p_respon', label:'Keterlibatan KPM', type:'single', opsi:['Sangat antusias','Antusias','Cukup aktif','Kurang aktif']},
+  {id:'p_temuan', label:'Hal penting yang muncul dalam diskusi', type:'text', ph:'Contoh: KPM berbagi pengalaman mengasuh anak, ada pertanyaan seputar jadwal posyandu'},
+  {id:'p_akhir', label:'Kendala dan tindak lanjut', type:'text', ph:'Kendala yang dihadapi dan rencana pertemuan berikutnya'}
+];
 function aiPilihSpec(item, aksiText){
+  if(isP2K2Aksi(item, aksiText)) return AI_SPEC_P2K2;
   var kunci = aiKunciSpec(item, aksiText);
   if(kunci === null) return null;
   return [AI_Q_WAKTU].concat(AI_SPEC[kunci] || AI_SPEC.generik, [AI_Q_AKHIR]);
@@ -1735,9 +1930,15 @@ function aiPopBuatField(q){
   var wrap = document.createElement('div'); wrap.className = 'ai-pop-field';
   var lab = document.createElement('label'); lab.textContent = q.label; wrap.appendChild(lab);
   var simpan = aiJawaban.nilai[q.id] || {};
+  if(q.type === 'date'){
+    var di = document.createElement('input'); di.type = 'date'; di.dataset.q = q.id; di.id = 'aiq_' + q.id;
+    di.value = simpan.teks || (q.id === 'p_tglK' ? (state.p2k2.tglKegiatan || '') : (state.tanggal || ''));
+    lab.htmlFor = di.id; wrap.appendChild(di);
+    return wrap;
+  }
   if(q.type === 'text'){
     var ta = document.createElement('textarea'); ta.rows = 2; ta.maxLength = 400; ta.dataset.q = q.id;
-    ta.placeholder = q.ph || ''; ta.value = simpan.teks || '';
+    ta.placeholder = q.ph || ''; ta.value = simpan.teks || (q.id === 'p_materi' ? (state.p2k2.materi || '') : '');
     lab.htmlFor = 'aiq_' + q.id; ta.id = 'aiq_' + q.id; wrap.appendChild(ta);
     return wrap;
   }
@@ -1767,8 +1968,8 @@ function aiPopKumpul(){
   var hasil = [], nilai = {};
   aiPopSpec.forEach(function(q){
     var teks = '', rec = {};
-    if(q.type === 'text'){
-      var ta = document.querySelector('#aiPopFields textarea[data-q="' + q.id + '"]');
+    if(q.type === 'text' || q.type === 'date'){
+      var ta = document.querySelector('#aiPopFields [data-q="' + q.id + '"]');
       teks = ta ? ta.value.trim() : ''; rec.teks = teks;
     } else {
       var pil = [];
@@ -1858,7 +2059,7 @@ function aiPopError(pesan){
 }
 function aiPopKunci(kunci){
   ['aiPopBatal','aiPopLewati','aiPopBuat'].forEach(function(id){ document.getElementById(id).disabled = kunci; });
-  document.getElementById('aiPopBuat').textContent = kunci ? 'Menghasilkan teks...' : 'Buat Uraian';
+  document.getElementById('aiPopBuat').textContent = kunci ? 'Menghasilkan teks...' : (isP2K2() ? 'Buat Rangkuman' : 'Buat Uraian');
 }
 
 function aiPopBuka(item, aksiText){
@@ -1887,6 +2088,9 @@ function aiPopBuka(item, aksiText){
     if(!simpanKpm.length) aiKpmTambahBaris('', '');
     det.open = simpanKpm.length > 0;
   } else { det.style.display = 'none'; det.open = false; }
+  document.getElementById('aiPopSub').textContent = isP2K2Aksi(item, aksiText)
+    ? 'Isi tanggal dan fakta kegiatan P2K2. AI akan menyusun Rangkuman Kegiatan; tanggal otomatis masuk ke laporan dan nomor laporan.'
+    : 'Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.';
   aiPopError(''); aiPopKunci(false);
   document.getElementById('aiPopOverlay').classList.add('open');
   var f = box.querySelector('textarea'); if(f) f.focus();
@@ -1973,9 +2177,68 @@ document.getElementById('btnGenB').addEventListener('click', function(){
   aiPopBuka(item, aksiText);
 });
 
+function aiBangunPromptP2k2(fakta){
+  var daftar = fakta.map(function(f){ return '- ' + f.label.replace(/\s*\*$/, '') + ': ' + f.isi; }).join('\n');
+  var p = state.p2k2;
+  var tambahan = [
+    p.hadir !== '' ? '- Peserta hadir: ' + p.hadir + ' orang' : '',
+    p.sakit !== '' ? '- Peserta sakit: ' + p.sakit + ' orang' : '',
+    p.alpa !== '' ? '- Peserta alpa: ' + p.alpa + ' orang' : '',
+    p.tempat ? '- Tempat: ' + p.tempat : '',
+    '- Wilayah: ' + p2kWilayah()
+  ].filter(Boolean).join('\n');
+  return 'Susun isi kolom "Rangkuman Kegiatan" pada Laporan Kegiatan Pertemuan Peningkatan Kemampuan Keluarga (P2K2), Program Keluarga Harapan (PKH), Kementerian Sosial RI.\n' +
+    'KONTEKS:\n- Jabatan pelapor: ' + (p2kJabatanLabel() || state.jabatan) + '\n- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
+    'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; jangan mengarang angka, tanggal, nama tempat, atau nama orang):\n' + (daftar || '- (tidak ada fakta tambahan)') + '\n' + tambahan + '\n' +
+    'TUGAS: tulis 2-3 paragraf naratif berbahasa Indonesia baku, orang ketiga, yang menggambarkan jalannya pertemuan (pembukaan, penyampaian materi, diskusi/tanya jawab, simulasi bila ada, dan penutup) serta keterlibatan KPM. ' +
+    'Jangan menyebut nama atau NIK KPM. Jangan menulis judul, daftar bernomor, atau tanda markdown. Bila suatu hal tidak diberikan, tulis kalimat umum yang wajar untuk P2K2 tanpa mengarang angka.';
+}
+async function aiP2k2Kirim(tanpaFakta){
+  if(aiPopSedangProses) return;
+  var fakta = aiPopKumpul();
+  var tK = (aiJawaban.nilai.p_tglK || {}).teks || '', tL = (aiJawaban.nilai.p_tglL || {}).teks || '';
+  if(!tanpaFakta){
+    if(!tK){ aiPopError('Isi tanggal kegiatan P2K2.'); return; }
+    if(!tL){ aiPopError('Isi tanggal laporan.'); return; }
+  }
+  if(tK && tL && tL < tK){ aiPopError('Tanggal laporan tidak boleh lebih awal dari tanggal kegiatan.'); return; }
+  var semua = fakta.map(function(f){ return f.isi; }).join(' ');
+  if(/\b\d{4}[\s.\-]?\d{4}[\s.\-]?\d{4}[\s.\-]?\d{4}\b/.test(semua)){ aiPopError('Jangan isi NIK atau angka 16 digit. Hapus dulu dari isian.'); return; }
+  if(tK || tL) p2k2SetTanggal(tK || state.p2k2.tglKegiatan, tL || state.tanggal);
+  var materi = (aiJawaban.nilai.p_materi || {}).teks || '';
+  if(materi && !(state.p2k2.materi || '').trim()){
+    state.p2k2.materi = materi; var em = document.getElementById('p2k_materi'); if(em) em.value = materi; p2k2Regen();
+  }
+  var st = document.getElementById('p2kAiStatus');
+  aiPopError(''); aiPopSedangProses = true; aiPopKunci(true);
+  try{
+    st.textContent = 'Menghasilkan teks...';
+    var faktaPakai = fakta.filter(function(f){ return !/^Tanggal /.test(f.label); }).map(function(f){ return {label: f.label, isi: f.isi}; });
+    if(tK) faktaPakai.unshift({label: 'Tanggal kegiatan', isi: p2kTgl(tK)});
+    var teks = String(await callClaudeAI_withCredit(aiBangunPromptP2k2(tanpaFakta ? [] : faktaPakai)) || '').trim();
+    if(!teks) throw new Error('AI tidak mengembalikan teks.');
+    teks = teks.replace(/^#+\s.*$/gm, '').replace(/\*\*/g, '').trim();
+    var ta = document.getElementById('p2k_rangkuman');
+    ta.value = teks; ta.dispatchEvent(new Event('input'));
+    aiPopTutup();
+    st.textContent = 'Selesai. Rangkuman terisi, tanggal sudah masuk ke laporan.';
+    setTimeout(function(){ st.textContent = ''; }, 4000);
+  }catch(err){
+    aiPopError('Gagal: ' + (err && err.message ? err.message : 'Permintaan AI gagal.') + ' Isian Anda tetap tersimpan, coba lagi.');
+    st.textContent = '';
+  }finally{
+    aiPopSedangProses = false; aiPopKunci(false);
+  }
+}
+document.getElementById('btnGenP2k2').addEventListener('click', function(){
+  var st = document.getElementById('p2kAiStatus');
+  if(!isP2K2()){ st.textContent = 'Pilih RHK P2K2 dan rencana aksi pelaksanaan pada langkah 2.'; return; }
+  aiPopBuka(getSelectedRhk(), getSelectedAksiText());
+});
 async function aiPopKirim(tanpaFakta){
   if(aiPopSedangProses) return;
   var item = getSelectedRhk(), aksiText = getSelectedAksiText();
+  if(isP2K2()) return aiP2k2Kirim(tanpaFakta);
   var fakta = aiPopKumpul();
   var infoKpm = aiInfoKpm(item, aksiText);
   var kpm = {daftar: [], error: ''};
@@ -2073,7 +2336,77 @@ return h;
 Tiap paragraf jadi satu blok tersendiri (judul bagian selalu menempel pada paragraf
 pertama berikutnya agar tidak pernah tertinggal sendirian di akhir halaman), sehingga
 nantinya bisa disusun otomatis ke beberapa lembar A4 sesuai kapasitas tiap halaman. */
+function p2kAlpha(text){
+const arr = (text||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+return arr.length ? '<ol class="p-alpha">' + arr.map(x=>'<li>'+esc(x)+'</li>').join('') + '</ol>' : '';
+}
+function p2kRow(label, val){ return '<tr><th class="p2k-th">'+label+'</th><td colspan="3">'+(val ? esc(val) : '&nbsp;')+'</td></tr>'; }
+function p2kRow4(l1, v1, l2, v2){ return '<tr><th class="p2k-th">'+l1+'</th><td>'+(v1 ? esc(v1) : '&nbsp;')+'</td><th class="p2k-th">'+l2+'</th><td>'+(v2 ? esc(v2) : '&nbsp;')+'</td></tr>'; }
+function p2kBandRow(t){ return '<tr><th class="p2k-band" colspan="4">'+t+'</th></tr>'; }
+function p2kTabel(rows){ return '<table class="p2k-tbl"><colgroup><col style="width:23%"><col style="width:27%"><col style="width:23%"><col style="width:27%"></colgroup><tbody>'+rows+'</tbody></table>'; }
+function p2kDaftarPemateri(){
+const p = state.p2k2, out = [];
+if(p.pemateriSaya) out.push({nama: state.nama || '', jabatan: p2kJabatanLabel()});
+p.pemateriLain.forEach(x=>{ if((x.nama||'').trim() || (x.jabatan||'').trim()) out.push(x); });
+return out.length ? out : [{nama:'', jabatan:''}];
+}
+function p2kFotoPertama(){ return state.dok.slice(0, 4); }
+function buildFlowBlocksP2K2(){
+const p = state.p2k2, blocks = [];
+const pushPara = (prefix, text)=>{ nl2pArr(text).forEach((x, i)=>{ blocks.push((i===0 ? prefix : '') + x); }); };
+pushPara('<h3 class="p2k-h">A. Pendahuluan</h3><p><b>1. Umum</b></p>', state.umum);
+blocks.push('<p><b>2. Maksud dan Tujuan</b></p>' + (p2kAlpha(state.maksud) || '<p>&nbsp;</p>'));
+const ruang = (state.ruang||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+blocks.push('<p><b>3. Ruang Lingkup</b></p>' + (ruang.length ? '<p>'+esc(ruang[0])+'</p>' + p2kAlpha(ruang.slice(1).join('\n')) : '<p>&nbsp;</p>'));
+blocks.push('<p><b>4. Dasar</b></p><ol class="p-alpha">' + (state.dasar.filter(d=>d.trim()).map(d=>'<li>'+esc(d)+'</li>').join('') || '<li>&nbsp;</li>') + '</ol>');
+blocks.push('__PB__');
+const pem = p2kDaftarPemateri();
+let pemRows = '';
+pem.forEach((x, i)=>{
+const n = pem.length > 1 ? ' ' + (i+1) : '';
+pemRows += p2kRow('Nama Pemateri' + n, x.nama) + p2kRow('Jabatan / Instansi' + n, x.jabatan);
+});
+const jam = (v)=> v || '';
+blocks.push('<h3 class="p2k-h">B. Pelaksanaan Kegiatan dan Hasil Yang Dicapai</h3><p class="p2k-star"><i>* Laporan P2K2 ini menjadi dokumen resmi sebagai laporan SKP untuk RHK P2K2</i></p><div class="p2k-title"><b>LAPORAN KEGIATAN P2K2</b><br>Pertemuan Peningkatan Kemampuan Keluarga</div>' +
+p2kTabel(
+p2kBandRow('A. INFORMASI UMUM') +
+p2kRow4('No. Laporan', p2kNomor(false), 'Tanggal Pengisian', p2kTgl(state.tanggal)) +
+p2kRow('Nama Pendamping', state.nama) +
+p2kRow4('Desa / Kelurahan', p2kKapital(p.desa), 'Kecamatan', p2kKapital(p.kec)) +
+p2kRow4('Kabupaten / Kota', p.kab ? ((p.jenisKab === 'Kabupaten' ? 'Kabupaten ' : 'Kota ') + p2kKapital(p.kab)) : '', 'Provinsi', p2kKapital(p.prov)) +
+p2kBandRow('B. WAKTU PELAKSANAAN') +
+p2kRow('Tanggal Kegiatan', p2kTgl(p.tglKegiatan)) +
+p2kRow4('Jam Mulai', jam(p.jamMulai), 'Jam Selesai', jam(p.jamSelesai)) +
+p2kRow('Tempat Pelaksanaan', p.tempat) +
+p2kBandRow('C. PEMATERI') + pemRows +
+p2kBandRow('D. ISI MATERI') +
+p2kRow('Materi', p2kMateri()) + p2kRow('Modul', p2kModul())
+));
+const angka = (v)=> (String(v).trim() === '' ? '.....' : String(v).trim());
+blocks.push(p2kTabel(
+p2kBandRow('E. ISI KEGIATAN') +
+'<tr><th class="p2k-th">Jumlah Peserta Hadir</th><td colspan="3">Hadir : '+esc(angka(p.hadir))+' orang<br>Sakit : '+esc(angka(p.sakit))+' orang<br>Alpa : '+esc(angka(p.alpa))+' orang</td></tr>'
+).replace('class="p2k-tbl"','class="p2k-tbl p2k-nojoin"'));
+const rk = (p.rangkuman||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+if(!rk.length) rk.push('');
+rk.forEach((par, i)=>{
+const last = i === rk.length - 1;
+blocks.push('<table class="p2k-tbl p2k-nojoin"><colgroup><col style="width:23%"><col style="width:77%"></colgroup><tbody><tr><th class="p2k-th p2k-top '+(i===0?'':'p2k-nolabel')+'">'+(i===0?'Rangkuman Kegiatan':'&nbsp;')+'</th><td class="p2k-top p2k-rk'+(last?' p2k-rk-last':'')+'">'+(par ? esc(par) : '&nbsp;')+'</td></tr></tbody></table>');
+});
+const fotos = p2kFotoPertama();
+let fotoHtml = '';
+for(let i=0;i<4;i+=2){
+const a = fotos[i], b = fotos[i+1];
+if(!a && !b && i>0) break;
+fotoHtml += '<div class="p2k-foto-row">' + [a,b].map(f=> f ? '<div class="p2k-foto"><img src="'+f.url+'" alt="Foto kegiatan"></div>' : '<div class="p2k-foto p2k-foto-kosong"></div>').join('') + '</div>';
+}
+blocks.push('<table class="p2k-tbl p2k-nojoin"><colgroup><col style="width:23%"><col style="width:77%"></colgroup><tbody><tr><th class="p2k-th p2k-top">Foto Kegiatan<br><span class="p2k-sub">(foto geotagging)</span></th><td class="p2k-top p2k-fotocell">'+fotoHtml+'</td></tr></tbody></table>');
+pushPara('<h3 class="p2k-h p2k-gap">C. Simpulan</h3>', state.kesimpulan);
+pushPara('<h3 class="p2k-h">D. Penutup</h3>', state.penutup);
+return blocks;
+}
 function buildFlowBlocks(){
+if(isP2K2()) return buildFlowBlocksP2K2();
 const item = getSelectedRhk();
 const blocks = [];
 function pushPara(prefixHtml, text){
@@ -2103,6 +2436,10 @@ let current = [];
 let currentHeight = 0;
 let cap = firstCap;
 blocksHtml.forEach(html=>{
+if(html === '__PB__'){
+if(current.length){ pages.push(current); current = []; currentHeight = 0; cap = otherCap; }
+return;
+}
 const h = measureHeight(html);
 if(current.length && currentHeight + h > cap){
 pages.push(current);
@@ -2132,7 +2469,23 @@ const ttdBlock = state.ttd
 ${interactive ? '<div class="ttd-hint">Seret untuk pindah</div><div class="ttd-resize-handle" title="Seret untuk mengubah ukuran"></div>' : ''}
 </div>`
 : '';
-const headerHtml = `
+const modeP2k = isP2K2();
+const p2kTitle = ()=>{
+const p = state.p2k2;
+const tg = p2kTgl(p.tglKegiatan);
+const tgl = tg ? tg.toUpperCase() : '.. ' + String(state.bulan||'').toUpperCase() + ' ' + (state.tahun||'');
+const kec = (p.kec||'').trim(), kab = (p.kab||'').trim(), prov = (p.prov||'').trim();
+const wil = [kec ? 'KECAMATAN ' + kec.toUpperCase() : '', kab ? (p.jenisKab === 'Kabupaten' ? 'KABUPATEN ' : 'KOTA ') + kab.toUpperCase() : '', prov ? 'PROVINSI ' + prov.toUpperCase() : ''].filter(Boolean).join(' ');
+return '<div class="p2k-judul"><b>LAPORAN NOMOR ' + esc(p2kNomor(true)) + '<br>TENTANG<br>KEGIATAN PERTEMUAN PENINGKATAN KAPASITAS KELUARGA (P2K2)<br>PROGRAM KELUARGA HARAPAN (PKH)<br>TANGGAL ' + esc(tgl) + (wil ? ' DI ' + esc(wil) : '') + '</b></div>' +
+'<div class="p2k-tglatas">Tanggal : ' + esc(p2kTgl(state.tanggal) || '..........................') + '</div>';
+};
+const headerHtml = modeP2k ? `
+<div class="paper-head">
+<img class="kop-img" src="${KOP_IMAGE_DATA_URL}" alt="Kop Surat Direktorat Perlindungan Sosial Non Kebencanaan">
+</div>
+<hr class="rule">
+${p2kTitle()}
+` : `
 <div class="paper-head">
 <img class="kop-img" src="${KOP_IMAGE_DATA_URL}" alt="Kop Surat Direktorat Perlindungan Sosial Non Kebencanaan">
 </div>
@@ -2176,10 +2529,11 @@ pages.push(html);
 if(signOnNewPage) pages.push(contHeaderHtml + signHtml);
 const DOK_PER_PAGE = 2; // foto 5.48in x 3.5in per halaman A4 (margin 18mm)
 const LAMP_PER_PAGE = 1; // 1 halaman sumber (gambar/halaman PDF) per lembar A4 agar isinya terpampang penuh & terbaca
-if(state.dok.length){
-const totalDokPages = Math.ceil(state.dok.length / DOK_PER_PAGE);
-for(let i=0, p=1; i<state.dok.length; i+=DOK_PER_PAGE, p++){
-const chunk = state.dok.slice(i, i+DOK_PER_PAGE);
+const dokList = modeP2k ? state.dok.slice(4) : state.dok;
+if(dokList.length){
+const totalDokPages = Math.ceil(dokList.length / DOK_PER_PAGE);
+for(let i=0, p=1; i<dokList.length; i+=DOK_PER_PAGE, p++){
+const chunk = dokList.slice(i, i+DOK_PER_PAGE);
 pages.push(`
 <div class="paper-page-title">Dokumentasi Kegiatan${totalDokPages>1?` (${p}/${totalDokPages})`:''}</div>
 <div class="doc-grid-print">

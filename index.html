@@ -281,7 +281,7 @@
         <button type="button" class="btn-ai-generate" id="btnRefreshPendahuluan">&#8635; Perbarui Otomatis dari RHK</button>
         <span class="ai-gen-status" id="pendahuluanStatus"></span>
       </div>
-      <div class="field"><label>Latar Belakang / Gambaran Umum</label>
+      <div class="field"><label id="lblUmum">Latar Belakang / Gambaran Umum</label>
         <textarea id="f_umum" rows="4" placeholder="Terisi otomatis setelah RHK dipilih pada langkah 2."></textarea>
       </div>
       <div class="field"><label>Maksud dan Tujuan</label>
@@ -296,6 +296,65 @@
       </div>
     </div></div>
 
+    <!-- ===== RHK 2 (P2K2 "Melaksanakan"): Formulir Laporan Kegiatan P2K2 — hanya tampil untuk RHK ini ===== -->
+    <div id="p2k2Wrap" style="display:none;">
+    <div class="group-head"><span class="letter">B</span><h2>Pelaksanaan Kegiatan dan Hasil yang Dicapai<span class="hint">formulir Laporan Kegiatan P2K2 sesuai format resmi</span></h2></div>
+    <div class="card"><div class="card-body">
+      <p class="p2k-info">* Laporan P2K2 ini menjadi dokumen resmi sebagai laporan SKP untuk RHK P2K2</p>
+
+      <div class="p2k-sec">A. Informasi Umum</div>
+      <div class="grid2">
+        <div class="field"><label for="p2k_noUrut">Nomor urut laporan<span class="hint">boleh dikosongkan, dicetak titik-titik</span></label><input type="text" id="p2k_noUrut" maxlength="12" placeholder="cth. 012"></div>
+        <div class="field"><label for="p2k_noKode">Kode unit di akhir nomor<span class="hint">setelah tahun</span></label><input type="text" id="p2k_noKode" maxlength="40" placeholder="cth. PKH-AMB"></div>
+      </div>
+      <div class="field"><label for="p2k_tglLaporan">Tanggal laporan (Tanggal Pengisian)<span class="hint">sama dengan Tanggal Laporan di Data Umum</span></label><input type="date" id="p2k_tglLaporan"></div>
+      <div class="field"><label id="p2k_lblPendamping">Nama Pendamping<span class="hint">sesuai data login</span></label><input type="text" id="p2k_namaView" readonly></div>
+      <div class="grid2">
+        <div class="field"><label for="p2k_desa">Desa / Kelurahan</label><input type="text" id="p2k_desa" maxlength="80"></div>
+        <div class="field"><label for="p2k_kec">Kecamatan</label><input type="text" id="p2k_kec" maxlength="80"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="p2k_kab">Kabupaten / Kota</label>
+          <div class="p2k-inline"><select id="p2k_jenisKab" aria-label="Kabupaten atau Kota"><option value="Kota">Kota</option><option value="Kabupaten">Kabupaten</option></select><input type="text" id="p2k_kab" maxlength="80" placeholder="cth. Ambon"></div>
+        </div>
+        <div class="field"><label for="p2k_prov">Provinsi</label><input type="text" id="p2k_prov" maxlength="80"></div>
+      </div>
+
+      <div class="p2k-sec">B. Waktu Pelaksanaan</div>
+      <div class="field"><label for="p2k_tglKegiatan">Tanggal kegiatan P2K2 *</label><input type="date" id="p2k_tglKegiatan"></div>
+      <div class="grid2">
+        <div class="field"><label for="p2k_jamMulai">Jam mulai</label><input type="time" id="p2k_jamMulai"></div>
+        <div class="field"><label for="p2k_jamSelesai">Jam selesai</label><input type="time" id="p2k_jamSelesai"></div>
+      </div>
+      <div class="field"><label for="p2k_tempat">Tempat pelaksanaan</label><input type="text" id="p2k_tempat" maxlength="160" placeholder="cth. Rumah Ketua RT 001 / RW 004"></div>
+
+      <div class="p2k-sec">C. Pemateri</div>
+      <label class="p2k-check"><input type="checkbox" id="p2k_pemSaya" checked> <span id="p2k_pemSayaTxt">Saya sebagai pemateri</span></label>
+      <div id="p2k_pemWrap"></div>
+      <button class="add-line" id="p2k_btnPem" type="button">+ Tambah pemateri lain</button>
+
+      <div class="p2k-sec">D. Isi Materi</div>
+      <div class="field"><label for="p2k_materi">Materi<span class="hint">kosongkan untuk memakai kalimat umum P2K2</span></label><textarea id="p2k_materi" rows="2" maxlength="400" placeholder="cth. Modul Pengasuhan dan Pendidikan Anak, Sesi 1"></textarea></div>
+      <div class="field"><label for="p2k_modul">Modul<span class="hint">kosong = sama dengan Materi</span></label><textarea id="p2k_modul" rows="2" maxlength="400"></textarea></div>
+
+      <div class="p2k-sec">E. Isi Kegiatan</div>
+      <div class="grid3">
+        <div class="field"><label for="p2k_hadir">Hadir (orang)</label><input type="number" id="p2k_hadir" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="p2k_sakit">Sakit (orang)</label><input type="number" id="p2k_sakit" min="0" inputmode="numeric"></div>
+        <div class="field"><label for="p2k_alpa">Alpa (orang)</label><input type="number" id="p2k_alpa" min="0" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <label for="p2k_rangkuman">Rangkuman Kegiatan</label>
+        <div style="margin-bottom:8px;">
+          <button type="button" class="btn-ai-generate" id="btnGenP2k2">&#10024; Sempurnakan dengan AI (opsional)</button>
+          <span class="ai-gen-status" id="p2kAiStatus"></span>
+        </div>
+        <textarea id="p2k_rangkuman" rows="7" placeholder="Tulis ringkasan jalannya kegiatan, atau klik Sempurnakan dengan AI. Foto kegiatan ditambahkan di bagian Dokumentasi Kegiatan di bawah (4 foto pertama masuk ke tabel)."></textarea>
+      </div>
+    </div></div>
+    </div>
+
+    <div id="bUmumWrap">
     <div class="group-head"><span class="letter">B</span><h2>Kegiatan yang Dilaksanakan<span class="hint">otomatis digenerate langsung berdasarkan RHK &amp; rencana aksi terpilih pada langkah 2 &mdash; dapat diedit/ditambahkan</span></h2></div>
     <div class="card"><div class="card-body">
       <div class="rhk-summary" id="bSummaryBox">
@@ -318,6 +377,8 @@
       </div>
     </div></div>
 
+    </div>
+    <div id="cUmumWrap">
     <div class="group-head"><span class="letter">C</span><h2>Hasil yang Dicapai<span class="hint">terisi otomatis dari RHK terpilih &mdash; dapat diedit/ditambahkan</span></h2></div>
     <div class="card"><div class="card-body">
       <div class="field">
@@ -326,16 +387,17 @@
       </div>
     </div></div>
 
-    <div class="group-head"><span class="letter">D</span><h2>Kesimpulan dan Saran<span class="hint">terisi otomatis dari RHK terpilih &mdash; dapat diedit/ditambahkan</span></h2></div>
+    </div>
+    <div class="group-head"><span class="letter" id="letterD">D</span><h2><span id="titleD">Kesimpulan dan Saran</span><span class="hint">terisi otomatis dari RHK terpilih &mdash; dapat diedit/ditambahkan</span></h2></div>
     <div class="card"><div class="card-body">
       <div class="field">
-        <label>Kesimpulan &amp; Saran</label>
+        <label id="lblKes">Kesimpulan &amp; Saran</label>
         <textarea id="f_kesimpulan" rows="4" placeholder="Kesimpulan terisi otomatis. Silakan edit."></textarea>
         <textarea id="f_saran" rows="4" style="margin-top:8px;" placeholder="Saran terisi otomatis. Silakan edit."></textarea>
       </div>
     </div></div>
 
-    <div class="group-head"><span class="letter">E</span><h2>Penutup<span class="hint">terisi otomatis &mdash; dapat diedit/ditambahkan</span></h2></div>
+    <div class="group-head"><span class="letter" id="letterE">E</span><h2><span id="titleE">Penutup</span><span class="hint">terisi otomatis &mdash; dapat diedit/ditambahkan</span></h2></div>
     <div class="card"><div class="card-body">
       <div class="field">
         <textarea id="f_penutup" rows="4" placeholder="Terisi otomatis. Silakan edit."></textarea>
@@ -384,7 +446,7 @@
 <div class="ai-pop-overlay" id="aiPopOverlay" role="dialog" aria-modal="true" aria-labelledby="aiPopTitle">
   <div class="ai-pop-modal">
     <h3 id="aiPopTitle">&#10024; Sempurnakan dengan AI</h3>
-    <p class="ai-pop-sub">Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.</p>
+    <p class="ai-pop-sub" id="aiPopSub">Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.</p>
     <div class="ai-pop-ctx" id="aiPopCtx"></div>
     <div class="ai-pop-warn" id="aiPopWarn">Jangan isi nama atau NIK KPM. Cukup jumlah dan wilayah.</div>
     <div id="aiPopFields"></div>
