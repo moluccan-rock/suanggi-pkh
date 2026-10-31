@@ -174,7 +174,7 @@ let state = {
 jabatan: "",
 rhkNo: null,
 aksiIdx: null,
-bulan:"Agustus", tahun:"2026", nama:"", nip:"", lokasi:"Ambon", tanggal:"",
+bulan:["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][new Date().getMonth()], tahun:String(new Date().getFullYear()), nama:"", nip:"", lokasi:"Ambon", tanggal:"",
 umum:"", maksud:"", ruang:"", pendahuluanTouched:false,
 dasar:["Undang-Undang Nomor 13 Tahun 2011 tentang Penanganan Fakir Miskin.","Peraturan Menteri Sosial Nomor 8 Tahun 2026 tentang Program Keluarga Harapan.","Peraturan Menteri Sosial Nomor 8 Tahun 2022 tentang Tata Naskah Dinas di Lingkungan Kementerian Sosial."],
 bUraian:"", hasil:"", kesimpulan:"", saran:"", penutup:"", kegiatanTouched:false,
@@ -1738,12 +1738,21 @@ document.getElementById(id).addEventListener('input', ()=>{ state.kegiatanTouche
 /* =================== BIND SIMPLE FIELDS =================== */
 const simpleFields = ['bulan','tahun','nama','nip','lokasi','tanggal','umum','maksud','ruang','bUraian','hasil','kesimpulan','saran','penutup'];
 const fieldIdMap = {bulan:'f_bulan',tahun:'f_tahun',nama:'f_nama',nip:'f_nip',lokasi:'f_lokasi',tanggal:'f_tanggal',umum:'f_umum',maksud:'f_maksud',ruang:'f_ruang',bUraian:'f_bUraian',hasil:'f_hasil',kesimpulan:'f_kesimpulan',saran:'f_saran',penutup:'f_penutup'};
+/* Sumber kebenaran bulan/tahun = isian yang TERLIHAT di layar. Browser (mis. Edge/Chrome) kadang memulihkan
+   pilihan dropdown tanpa memicu event, sehingga state tertinggal; fungsi ini menyamakannya kembali. */
+function sinkronBulanTahun(){
+  ['bulan','tahun'].forEach(function(k){
+    var el = document.getElementById(fieldIdMap[k]);
+    if(el && el.value !== state[k]) state[k] = el.value;
+  });
+}
 function bindFields(){
 simpleFields.forEach(key=>{
 const el = document.getElementById(fieldIdMap[key]);
 if(!el) return;
 el.value = state[key];
 el.addEventListener('input', ()=>{ state[key] = el.value; renderPreview(); });
+if(el.tagName === 'SELECT') el.addEventListener('change', ()=>{ state[key] = el.value; renderPreview(); });
 });
 }
 /* =================== TOMBOL AI + POPUP ISIAN FAKTA =================== */
@@ -2588,6 +2597,7 @@ function paperPagesToHtml(pages){
 return pages.map((content,i)=>`<div class="paper${i>0?' page-break':''}">${content}</div>`).join('');
 }
 function renderPreview(){
+sinkronBulanTahun();
 const container = document.getElementById('paper');
 container.innerHTML = paperPagesToHtml(buildPaperPages(true));
 attachTtdResizeHandle(container);
@@ -2613,17 +2623,19 @@ area.style.transformOrigin = 'top center';
 window.addEventListener('resize', fitPreviewZoom);
 /* =================== SIMPAN / EXPORT KE PDF =================== */
 function namaFilePdf(){
-// Format nama file: "RHK <no>_<Rencana Aksi yang dipilih>_<Bulan>.pdf"
+sinkronBulanTahun();
+// Format nama file: "RHK <no>_<Rencana Aksi yang dipilih>_<Bulan laporan>_<Tahun>.pdf"
 const item = getSelectedRhk();
 const rhkLabel = item ? ('RHK ' + item.no) : 'RHK';
 const aksiText = getSelectedAksiText() || 'Rencana Aksi';
-const bulan = state.bulan || '';
-const raw = `${rhkLabel}_${aksiText}_${bulan}`;
-let bersih = raw.replace(/[^a-zA-Z0-9_\-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
-// Batasi panjang nama file (rencana aksi bisa berupa kalimat panjang) agar
-// tetap aman disimpan di semua sistem operasi (Windows/macOS/Android/iOS).
-if(bersih.length > 150) bersih = bersih.slice(0,150).replace(/_+$/g,'');
-return bersih + '.pdf';
+const bersih = (t)=> String(t||'').replace(/[^a-zA-Z0-9_\-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+const ekor = bersih(state.bulan) + '_' + bersih(state.tahun);
+let depan = bersih(rhkLabel + '_' + aksiText);
+// Rencana aksi bisa berupa kalimat panjang: yang dipotong HANYA bagian depan,
+// supaya bulan & tahun selalu utuh dan nama tetap aman di semua sistem operasi.
+const maks = 150 - ekor.length - 1;
+if(depan.length > maks) depan = depan.slice(0, maks).replace(/_+$/g,'');
+return depan + '_' + ekor + '.pdf';
 }
 function setPrintBtnsState(loading){
 ['btnPrint','btnPrint2'].forEach(id=>{
@@ -2637,6 +2649,7 @@ b.textContent = loading ? 'Menyimpan PDF...' : 'Pratinjau & Simpan ke PDF';
 const previewModalOverlay = document.getElementById('previewModalOverlay');
 const previewModalBody = document.getElementById('previewModalBody');
 function openPreviewModal(){
+sinkronBulanTahun();
 renderPreview(); // pastikan pratinjau memakai data terbaru
 previewModalBody.innerHTML = paperPagesToHtml(buildPaperPages());
 previewModalOverlay.classList.add('open');
