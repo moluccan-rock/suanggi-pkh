@@ -91,13 +91,14 @@
       </div>
       <button class="btn btn-gold" id="btnLoginMasuk" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
-        Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a>
+        Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a><br>
+        <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:700; display:inline-block; margin-top:8px;">☕ Lihat Paket dan Harga</a>
       </p>
     </div>
 
     <!-- FORM 2: PENDAFTARAN (Nama + NIP + WA/Telegram) -->
     <div id="registerForm" style="display:none; text-align:left;">
-      <p style="font-size:12px; color:#4b5563; margin:0 0 15px;">Isi data berikut. Admin akan memverifikasi pembayaran lalu mengaktifkan akses Anda sesuai jumlah hari yang diminta.</p>
+      <p style="font-size:12px; color:#4b5563; margin:0 0 15px;">Isi data berikut. Akun baru langsung mendapat <b>trial gratis 24 jam</b>; token dikirim otomatis lewat <b>Telegram</b>, tanpa menunggu admin.</p>
       <div style="margin-bottom:10px;">
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Nama Lengkap (dengan gelar, opsional)</label>
         <input type="text" id="regNama" placeholder="cth. Rizky Pratama, S.Tr.Sos" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
@@ -110,35 +111,49 @@
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">No. WhatsApp/Telegram *</label>
         <input type="text" id="regHp" placeholder="cth. 08123456789" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
       </div>
-      <div style="margin-bottom:20px;">
-        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Jumlah Hari Akses yang Diminta * (maks. 7 hari)</label>
-        <input type="number" id="regHari" min="1" max="7" placeholder="cth. 7" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
-        <p style="font-size:11px; color:#8590a0; margin:4px 0 0;">Akses aplikasi akan aktif selama jumlah hari ini sejak diaktifkan Admin, lalu otomatis keluar ke halaman login. Maksimal pengajuan 7 hari per permintaan.</p>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Email (opsional — pesan cadangan jika Telegram bermasalah)</label>
+        <input type="email" id="regEmail" placeholder="cth. nama@gmail.com" autocomplete="email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
       </div>
+      <div class="trial-info">🎁 <b>Coba gratis 24 jam</b> — waktu dihitung sejak login pertama. Semua fitur bisa dipakai kecuali Sempurnakan AI. Suka? Lanjut traktir ngopi: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</div>
+      <label class="consent-row"><input type="checkbox" id="regSetuju"><span>Saya setuju menerima notifikasi (token, info akun, dan pengingat masa aktif) lewat Telegram atau email. *</span></label>
+      <p class="tg-note">📲 Setelah menekan Daftar, hubungkan <b>Telegram</b> (satu ketukan). Begitu terhubung, akun aktif dan token langsung dikirim ke sana.</p>
       <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesRegistrasi()">Daftar</button>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
-        Sudah punya token? <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#7f1d1d; font-weight:600;">Masuk di sini</a>
+        Sudah punya token? <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#7f1d1d; font-weight:600;">Masuk di sini</a><br>
+        <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:700; display:inline-block; margin-top:8px;">☕ Lihat Paket dan Harga</a>
       </p>
     </div>
 
     <!-- Pesan setelah pendaftaran berhasil -->
     <div id="registerSuccessBox" style="display:none; text-align:left;">
       <p style="font-size:14px; color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0; padding:14px; border-radius:8px;">
-        ✅ Pendaftaran berhasil! Admin akan memverifikasi pembayaran dan mengaktifkan akses Anda. Simpan NIP Anda untuk login setelah token diaktifkan.
+        ✅ Pendaftaran berhasil! Tinggal satu langkah lagi: hubungkan Telegram supaya trial 24 jam aktif dan token langsung dikirim.
       </p>
+      <div class="tg-box" id="tgDaftarBox">
+        <p style="margin:0 0 8px;"><b>Langkah terakhir (wajib): hubungkan Telegram</b><br><span style="font-size:12px;">Begitu terhubung, akun trial 24 jam aktif otomatis dan token dikirim ke Telegram Anda. (Jika NIP tidak dikenali otomatis, admin akan memverifikasi manual.)</span></p>
+        <a class="tg-link" id="tgDaftarLink" href="#" target="_blank" rel="noopener">📲 Hubungkan Telegram</a>
+        <p id="tgDaftarStatus" class="tg-status">Tekan tombol di atas, lalu tekan <b>Start</b> di Telegram.</p>
+      </div>
       <button class="btn btn-outline" style="width:100%; justify-content:center; margin-top:10px;" onclick="tampilkanFormLogin()">Kembali ke Halaman Masuk</button>
     </div>
 
     <!-- Form pengajuan PERPANJANGAN token (muncul otomatis saat token kedaluwarsa) -->
     <div id="perpanjanganForm" style="display:none; text-align:left;">
       <p style="font-size:13px; color:#fde68a; font-weight:600; margin:0 0 6px;" id="perpanjanganTitle">Masa aktif akun Anda sudah berakhir.</p>
-      <p style="font-size:12px; color:rgba(255,255,255,.82); margin:0 0 15px;">Ajukan perpanjangan dengan mengisi jumlah hari akses yang Anda perlukan (maksimal 7 hari). Admin akan memverifikasi pembayaran lalu mengaktifkan kembali.</p>
+      <p style="font-size:12px; color:rgba(255,255,255,.82); margin:0 0 15px;">Yuk lanjut ☕ Kalau Telegram sudah terhubung, cukup ketik <b>/beli</b> di bot lalu kirim bukti pembayaran. Atau isi jumlah hari di bawah (maks. 7 hari) dan admin akan mengaktifkan kembali — token baru dikirim otomatis. <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:600;">Lihat Paket dan Harga</a></p>
       <input type="hidden" id="perpanjanganNip">
+      <button type="button" class="btn btn-gold" id="btnBayarPerp" style="display:none; width:100%; justify-content:center; margin:0 0 14px;" onclick="bukaBayar(true)">☕ Traktir Ngopi dengan QRIS</button>
       <div style="margin-bottom:20px;">
         <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px;">Jumlah Hari Akses yang Diminta * (maks. 7 hari)</label>
         <input type="number" id="perpanjanganHari" min="1" max="7" placeholder="cth. 7" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
       </div>
       <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesAjukanPerpanjangan()">Ajukan Perpanjangan</button>
+      <div id="tgPerpBox" class="tg-box" style="display:none; margin-top:14px;">
+        <p style="margin:0 0 8px;"><b>Hubungkan Telegram</b> supaya token baru langsung sampai ke kamu.</p>
+        <a class="tg-link" id="tgPerpLink" href="#" target="_blank" rel="noopener">📲 Hubungkan Telegram</a>
+        <p id="tgPerpStatus" class="tg-status">Tekan tombol, lalu tekan <b>Start</b> di Telegram.</p>
+      </div>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#fde68a; font-weight:600;">Kembali ke Halaman Masuk</a>
       </p>
@@ -146,6 +161,94 @@
 
     <div id="loginError" style="display:none; color:red; margin-top:15px; font-size:12px;"></div>
   </div>
+</div>
+
+<!-- ===================== PAKET DAN HARGA (publik) ===================== -->
+<div id="hargaOverlay" class="harga-overlay" style="display:none;" onclick="if(event.target===this)tutupHarga()">
+  <div class="harga-card" role="dialog" aria-modal="true" aria-labelledby="hargaJudul">
+    <button type="button" class="harga-x" onclick="tutupHarga()" aria-label="Tutup">×</button>
+    <h2 id="hargaJudul">☕ Paket dan Harga</h2>
+    <p class="harga-sub">Pakai Suanggi PKH itu murah — cukup traktir ngopi. Harga jelas, tanpa biaya tersembunyi.</p>
+    <div class="harga-trial">🎁 <b>Coba gratis 24 jam</b> untuk akun baru (tanpa Sempurnakan AI). Dihitung sejak login pertama.</div>
+    <div class="harga-grid">
+      <div class="harga-item">
+        <div class="harga-hari">7 hari</div>
+        <div class="harga-rp">Rp7.000</div>
+        <div class="harga-ket">Pas untuk satu laporan bulanan</div>
+      </div>
+      <div class="harga-item harga-hemat">
+        <div class="harga-tag">Lebih hemat</div>
+        <div class="harga-hari">30 hari</div>
+        <div class="harga-rp">Rp25.000</div>
+        <div class="harga-ket">Setara Rp833 per hari</div>
+      </div>
+    </div>
+    <ul class="harga-list">
+      <li>Masa aktif dihitung per hari, mulai saat akun diaktifkan.</li>
+      <li>Membeli lagi sebelum habis? Hari yang tersisa tidak hilang — hari baru ditambahkan di atasnya.</li>
+      <li>Pengingat masa aktif dan token dikirim lewat Telegram (cadangan email).</li>
+      <li>Cara bayar: ketik <b>/beli</b> di bot Telegram, scan QRIS, lalu kirim foto bukti. Admin mencocokkan dan menambah hari akses Anda.</li>
+      <li>Fitur <b>Sempurnakan AI</b> terbuka setelah traktir kopi.</li>
+    </ul>
+    <button type="button" class="btn btn-gold" style="width:100%; justify-content:center;" onclick="tutupHarga()">Mengerti</button>
+  </div>
+</div>
+
+<!-- Traktir Ngopi: bayar QRIS dari aplikasi (alternatif dari bot Telegram) -->
+<div id="bayarOverlay" class="harga-overlay" style="display:none;" onclick="if(event.target===this)tutupBayar()">
+  <div class="harga-card" role="dialog" aria-modal="true" aria-labelledby="bayarJudul">
+    <button type="button" class="harga-x" onclick="tutupBayar()" aria-label="Tutup">×</button>
+    <h2 id="bayarJudul">☕ Traktir Ngopi</h2>
+    <p class="harga-sub" id="bayarSub">Memuat...</p>
+    <div id="bayarIsi" style="display:none;">
+      <div class="bayar-langkah">1. Pilih paket</div>
+      <div class="bayar-paket" id="bayarPaket"></div>
+      <div class="bayar-langkah">2. Scan QRIS lalu ketik nominal <b>persis</b></div>
+      <div class="bayar-nominal" id="bayarNominal">Pilih paket dulu</div>
+      <div class="bayar-qris">
+        <img id="bayarQris" src="qris.png" alt="QRIS pembayaran" onerror="this.style.display='none';document.getElementById('bayarQrisKosong').style.display='block';">
+        <div id="bayarQrisKosong" style="display:none;" class="bayar-info">Gambar QRIS belum dipasang admin. Minta admin lewat bot Telegram.</div>
+      </div>
+      <div class="bayar-info" id="bayarInfo"></div>
+      <div class="bayar-langkah">3. Setelah membayar</div>
+      <button type="button" class="btn btn-gold" id="bayarBtn" style="width:100%; justify-content:center;" disabled onclick="kirimSudahBayar()">✅ Saya sudah bayar</button>
+      <div class="bayar-status" id="bayarStatus"></div>
+      <p class="bayar-alt">Lebih suka lewat Telegram? Ketik <b>/beli</b> di <a id="bayarBotLink" href="https://t.me/esuanggiPKH_bot" target="_blank" rel="noopener">@esuanggiPKH_bot</a> lalu kirim foto bukti. Hasilnya sama.</p>
+    </div>
+    <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center; color:#7f1d1d; border:1px solid #d6b4b4; margin-top:10px;" onclick="tutupBayar()">Tutup</button>
+  </div>
+</div>
+
+<!-- Sempurnakan AI terkunci saat trial -->
+<div id="trialAiOverlay" class="harga-overlay" style="display:none;" onclick="if(event.target===this)tutupTrialAi()">
+  <div class="harga-card" role="dialog" aria-modal="true">
+    <button type="button" class="harga-x" onclick="tutupTrialAi()" aria-label="Tutup">×</button>
+    <h2>🔒 Sempurnakan AI</h2>
+    <p class="harga-sub">Fitur ini terbuka setelah traktir ngopi ☕ Selama trial, uraian laporan tetap bisa diketik manual dan PDF tetap bisa diunduh.</p>
+    <ul class="harga-list">
+      <li>Paket: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</li>
+      <li>Bayar lewat tombol <b>Traktir Ngopi</b> di aplikasi, atau ketik <b>/beli</b> di bot Telegram.</li>
+      <li>Sudah dikonfirmasi admin? Keluar lalu masuk lagi supaya fitur terbuka.</li>
+    </ul>
+    <button type="button" class="btn btn-gold" id="btnBayarTrial" style="display:none; width:100%; justify-content:center; margin-bottom:8px;" onclick="tutupTrialAi();bukaBayar()">☕ Traktir Ngopi sekarang</button>
+    <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center; color:#7f1d1d; border:1px solid #d6b4b4;" onclick="tutupTrialAi()">Nanti saja</button>
+  </div>
+</div>
+
+<!-- Banner non-blokir: ajakan menghubungkan Telegram untuk pengguna yang sudah login -->
+<div id="tgBanner" class="tg-banner" style="display:none;" role="region" aria-label="Hubungkan Telegram">
+  <button type="button" class="tg-banner-x" onclick="tundaBannerTelegram()" aria-label="Nanti saja">×</button>
+  <div class="tg-banner-judul">📲 Hubungkan Telegram</div>
+  <div class="tg-banner-isi" id="tgBannerIsi">Terima pengingat masa aktif dan info akun langsung di Telegram. Sekali ketuk, tidak mengganggu pekerjaanmu.</div>
+  <div class="tg-banner-email">
+    <input type="email" id="tgBannerEmail" placeholder="Email cadangan (opsional)" autocomplete="email">
+    <button type="button" class="btn btn-ghost" onclick="simpanEmailBanner()">Simpan</button>
+  </div>
+  <div class="tg-banner-aksi">
+    <button type="button" class="btn btn-gold" id="tgBannerBtn" onclick="hubungkanTelegramSekarang()">Hubungkan</button>
+    <button type="button" class="btn btn-ghost" onclick="tundaBannerTelegram()">Nanti saja</button>
+  </div>
+  <div class="tg-banner-status" id="tgBannerStatus"></div>
 </div>
 
 <!-- ===================== STEP 1: GERBANG PEMILIHAN JABATAN ===================== -->
@@ -187,6 +290,7 @@
     <div class="topbar-actions-col">
       <span class="role-badge">Jabatan: <b id="roleBadgeName">-</b></span>
       <span id="creditBadge" class="credit-badge" style="display:none;">⏳ Sisa Akses: -</span>
+      <button class="btn btn-ghost btn-bayar" id="btnBayar" type="button" style="display:none;" onclick="bukaBayar()">☕ Traktir Ngopi</button>
     </div>
     <!-- Kolom 2: "Ganti Jabatan" di atas, "Ganti RHK" tepat di bawahnya -->
     <div class="jabatan-actions-col">

@@ -775,3 +775,65 @@ body.role-locked .tema-picker{display:flex;}
 .p2k-foto{flex:1 1 0;min-width:0;height:200px;display:flex;align-items:center;justify-content:center;background:#f4f5f7;border:1px solid #ccc;overflow:hidden;}
 .p2k-foto img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;}
 .p2k-foto-kosong{background:#fff;border-color:#e3e3e3;}
+
+
+/* ===== Tahap 1: Telegram, harga, banner ===== */
+.consent-row{display:flex; gap:8px; align-items:flex-start; font-size:12px; color:#4b5563; margin:0 0 10px; line-height:1.4; cursor:pointer;}
+.consent-row input{margin-top:2px; flex:0 0 auto; width:16px; height:16px;}
+.tg-note{font-size:11px; color:#6b7280; margin:0 0 14px; line-height:1.45;}
+.tg-box{background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; padding:14px; border-radius:10px; font-size:13px; margin-top:12px; line-height:1.45;}
+.tg-link{display:flex; align-items:center; justify-content:center; gap:6px; background:#229ed9; color:#fff !important; font-weight:700; text-decoration:none; padding:11px 14px; border-radius:8px;}
+.tg-link:hover{filter:brightness(1.07);}
+.tg-status{font-size:12px; margin:8px 0 0; color:#475569;}
+.tg-status.ok{color:#047857; font-weight:700;}
+.harga-overlay{position:fixed; inset:0; z-index:10001; background:rgba(15,23,42,.62); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;}
+.harga-card{position:relative; background:#fff; color:#1f2937; border-radius:16px; width:100%; max-width:420px; padding:26px 22px 22px; box-shadow:0 20px 50px rgba(0,0,0,.35); margin:auto;}
+.harga-card h2{margin:0 0 4px; font-size:20px; color:#7f1d1d;}
+.harga-sub{font-size:13px; color:#4b5563; margin:0 0 16px; line-height:1.45;}
+.harga-x{position:absolute; top:8px; right:12px; border:0; background:none; font-size:26px; line-height:1; color:#6b7280; cursor:pointer;}
+.harga-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+.harga-item{position:relative; border:1.5px solid #e5e7eb; border-radius:12px; padding:14px 10px; text-align:center;}
+.harga-item.harga-hemat{border-color:#d97706; background:#fffbeb;}
+.harga-tag{position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:#d97706; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap;}
+.harga-hari{font-size:13px; font-weight:700; color:#4b5563;}
+.harga-rp{font-size:24px; font-weight:800; color:#111827; margin:4px 0;}
+.harga-ket{font-size:11px; color:#6b7280;}
+.harga-list{margin:0 0 16px; padding-left:18px; font-size:12px; color:#4b5563; line-height:1.55;}
+.tg-banner{position:fixed; right:16px; bottom:16px; z-index:9000; width:min(340px, calc(100vw - 32px)); background:#fff; color:#1f2937; border:1px solid #bfdbfe; border-left:5px solid #229ed9; border-radius:12px; padding:14px 14px 12px; box-shadow:0 10px 30px rgba(0,0,0,.28);}
+.tg-banner-x{position:absolute; top:4px; right:8px; border:0; background:none; font-size:22px; color:#6b7280; cursor:pointer; line-height:1;}
+.tg-banner-judul{font-weight:800; font-size:14px; margin-bottom:4px;}
+.tg-banner-isi{font-size:12px; color:#4b5563; line-height:1.45; margin-bottom:8px;}
+.tg-banner-email{display:flex; gap:6px; margin-bottom:8px;}
+.tg-banner-email input{flex:1; min-width:0; padding:7px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:12px;}
+.tg-banner-aksi{display:flex; gap:8px;}
+.tg-banner-aksi .btn{flex:1; justify-content:center;}
+.tg-banner-status{font-size:12px; margin-top:8px; color:#475569;}
+.tg-banner-status.ok{color:#047857; font-weight:700;}
+.tg-banner .btn-ghost{color:#7f1d1d !important; background:#fff !important; border:1px solid #d6b4b4 !important;}
+.tg-banner .btn-ghost:hover{background:#fef2f2 !important;}
+@media print{ .tg-banner, .harga-overlay{display:none !important;} }
+.tg-box p, .tg-box b, .tg-box span{color:#1e3a8a !important;}
+.tg-box .tg-status, .tg-box .tg-status b{color:#475569 !important;}
+.tg-box .tg-status.ok{color:#047857 !important; font-weight:700;}
+
+.trial-info{background:rgba(253,230,138,.16); border:1px solid rgba(253,230,138,.55); color:#fff; padding:10px 12px; border-radius:10px; font-size:12px; line-height:1.5; margin:0 0 12px;}
+.trial-info b{color:#fde68a;}
+.harga-trial{background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:10px; padding:10px 12px; font-size:12px; margin:0 0 14px; line-height:1.45;}
+
+.bayar-langkah{font-size:12px; font-weight:800; color:#7f1d1d; margin:12px 0 6px;}
+.bayar-paket{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.bayar-opsi{border:1.5px solid #e5e7eb; border-radius:10px; padding:10px 6px; text-align:center; background:#fff; cursor:pointer; font:inherit; color:#1f2937;}
+.bayar-opsi b{display:block; font-size:18px;}
+.bayar-opsi span{font-size:11px; color:#6b7280;}
+.bayar-opsi.pilih{border-color:#d97706; background:#fffbeb; box-shadow:0 0 0 2px rgba(217,119,6,.25);}
+.bayar-nominal{font-size:14px; text-align:center; background:#f3f4f6; border-radius:8px; padding:8px; color:#374151;}
+.bayar-nominal b{font-size:18px; color:#111827;}
+.bayar-qris{text-align:center; margin:10px 0 6px;}
+.bayar-qris img{width:100%; max-width:260px; border-radius:10px; border:1px solid #e5e7eb; background:#fff;}
+.bayar-info{font-size:12px; color:#4b5563; line-height:1.5; text-align:center; white-space:pre-line;}
+.bayar-status{font-size:12px; margin-top:8px; text-align:center; color:#475569; line-height:1.45;}
+.bayar-status.ok{color:#047857; font-weight:700;}
+.bayar-status.err{color:#b91c1c;}
+.bayar-alt{font-size:11px; color:#6b7280; text-align:center; margin:10px 0 0; line-height:1.45;}
+.bayar-alt a{color:#1d4ed8; font-weight:700;}
+@media print{ #bayarOverlay, #trialAiOverlay{display:none !important;} }

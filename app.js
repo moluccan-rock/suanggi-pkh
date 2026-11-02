@@ -228,6 +228,7 @@ function cekStatusLogin(){
 }
 
 function tampilkanFormLogin(){
+  hentikanPollTelegram_();
   document.getElementById('loginLoading').style.display = 'none';
   document.getElementById('registerForm').style.display = 'none';
   document.getElementById('registerSuccessBox').style.display = 'none';
@@ -246,7 +247,8 @@ function tampilkanFormDaftar(){
 }
 
 /* Muncul otomatis saat token kedaluwarsa (dari login gagal atau saat sesi aktif berakhir) */
-function tampilkanFormPerpanjangan(nip, nama, pesan){
+function tampilkanFormPerpanjangan(nip, nama, pesan, bayarAktif){
+  var bp = document.getElementById('btnBayarPerp'); if(bp) bp.style.display = bayarAktif ? '' : 'none';
   document.getElementById('loginLoading').style.display = 'none';
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('registerForm').style.display = 'none';
@@ -276,9 +278,11 @@ function prosesAjukanPerpanjangan(){
 
   panggilAPI('ajukanPerpanjangan', { nip: nip, jumlahHariDiminta: hari }).then(function(res){
       if(res.status === 'success'){
-        tampilkanFormPerpanjangan(nip, '', res.message);
+        var bayarMasihAda = document.getElementById('btnBayarPerp').style.display !== 'none';
+        tampilkanFormPerpanjangan(nip, '', res.message, bayarMasihAda);
         document.getElementById('perpanjanganHari').value = '';
         document.getElementById('perpanjanganTitle').style.color = '#6ffbbe';
+        siapkanTautanTelegram_('tgPerp', res);
       } else {
         errBox.textContent = res.message;
         errBox.style.display = 'block';
@@ -332,7 +336,7 @@ function prosesLoginToken(){
         masukKeAplikasi(true);
       } else if(res.status === 'expired'){
         sedangLogin = false; tampilBolaLogin(false, true);
-        tampilkanFormPerpanjangan(res.data.nip, res.data.nama, res.message);
+        tampilkanFormPerpanjangan(res.data.nip, res.data.nama, res.message, res.data.bayarAktif);
       } else {
         sedangLogin = false; tampilBolaLogin(false);
         errBox.textContent = res.message;
@@ -349,30 +353,32 @@ function prosesRegistrasi(){
   var nama = (document.getElementById('regNama').value || '').trim();
   var nip = (document.getElementById('regNip').value || '').trim();
   var hp = (document.getElementById('regHp').value || '').trim();
-  var hari = (document.getElementById('regHari').value || '').trim();
+  var email = (document.getElementById('regEmail').value || '').trim();
+  var setuju = document.getElementById('regSetuju').checked;
   var errBox = document.getElementById('loginError');
   errBox.style.display = 'none';
 
+  if(email && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']{2,}$/.test(email)){
+    errBox.textContent = 'Format email tidak valid (boleh dikosongkan).';
+    errBox.style.display = 'block';
+    return;
+  }
+  if(!setuju){
+    errBox.textContent = 'Centang persetujuan menerima notifikasi — token dan info akun dikirim lewat Telegram/email.';
+    errBox.style.display = 'block';
+    return;
+  }
   if(!nip || !hp || !nama){
     errBox.textContent = 'Nama, NIP, dan No. WhatsApp/Telegram wajib diisi.';
     errBox.style.display = 'block';
     return;
   }
-  if(!hari || Number(hari) <= 0){
-    errBox.textContent = 'Jumlah hari akses yang diminta wajib diisi (angka lebih dari 0).';
-    errBox.style.display = 'block';
-    return;
-  }
-  if(Number(hari) > 7){
-    errBox.textContent = 'Maksimal pengajuan akses adalah 7 hari.';
-    errBox.style.display = 'block';
-    return;
-  }
 
-  panggilAPI('daftarUser', { nama: nama, nip: nip, noWa: hp, jumlahHariDiminta: hari }).then(function(res){
+  panggilAPI('daftarUser', { nama: nama, nip: nip, noWa: hp, jumlahHariDiminta: 1, email: email, setuju: true }).then(function(res){
       if(res.status === 'success'){
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('registerSuccessBox').style.display = 'block';
+        siapkanTautanTelegram_('tgDaftar', res);
       } else {
         errBox.textContent = res.message;
         errBox.style.display = 'block';
@@ -384,6 +390,9 @@ function prosesRegistrasi(){
 }
 
 function masukKeAplikasi(tahanGerbang){
+  setTimeout(tampilkanBannerTelegram, 6000); // ajakan Telegram, tidak menghalangi apa pun
+  terapkanModeTrial_();
+  terapkanTombolBayar_();
   // tahanGerbang=true (login manual): gerbang login ditutup nanti, setelah daftar jabatan selesai dimuat.
   if(!tahanGerbang) document.getElementById('loginGate').style.display = 'none';
   // PERBAIKAN BUG: baris ini SEBELUMNYA ikut menghapus class 'role-locked',
@@ -464,19 +473,19 @@ function selesaiBolaLogin(){
 var timerCekExpired = null;
 function mulaiPantauKedaluwarsaToken(){
   clearInterval(timerCekExpired);
-  if(!currentUser || !currentUser.tanggalExpired) return;
+  if(!currentUser || currentUser.gratis || !currentUser.tanggalExpired) return; // akun Gratis: tanpa batas waktu
   timerCekExpired = setInterval(function(){
     updateCreditBadge();
     if(new Date(currentUser.tanggalExpired) < new Date()){
       clearInterval(timerCekExpired);
       SafeStorage.remove('suanggi_login');
-      var nipUser = currentUser.nip, namaUser = currentUser.nama;
+      var nipUser = currentUser.nip, namaUser = currentUser.nama, trialHabis = !!currentUser.trial, bayarAktifUser = !!currentUser.bayarAktif;
       currentUser = null;
       document.body.classList.add('role-locked');
       document.body.classList.remove('step-edit', 'step-rhk');
       document.getElementById('btnLogoutFloating').style.display = 'none';
       document.getElementById('loginGate').style.display = 'flex';
-      tampilkanFormPerpanjangan(nipUser, namaUser, 'Masa aktif akun Anda telah berakhir saat sesi ini berlangsung.');
+      tampilkanFormPerpanjangan(nipUser, namaUser, trialHabis ? 'Trial 24 jam-mu sudah selesai ☕ Terima kasih sudah mencoba! Yuk lanjut traktir ngopi.' : 'Masa aktif akunmu baru saja berakhir ☕ Yuk perpanjang supaya bisa lanjut.', bayarAktifUser);
     }
   }, 5 * 60 * 1000); // cek tiap 5 menit — cukup responsif tanpa membebani server
 }
@@ -561,8 +570,21 @@ document.getElementById('btnLogoutTop').addEventListener('click', function(){
 function updateCreditBadge(){
   var badge = document.getElementById('creditBadge');
   if(!badge) return;
+  if(currentUser && currentUser.gratis){
+    badge.style.display = '';
+    badge.textContent = '✨ Akses Gratis';
+    badge.classList.remove('low');
+    return;
+  }
   if(!currentUser || !currentUser.tanggalExpired){ badge.style.display = 'none'; return; }
   var msSisa = new Date(currentUser.tanggalExpired) - new Date();
+  if(currentUser.trial){
+    var jamSisa = Math.max(0, Math.ceil(msSisa / 3600000));
+    badge.style.display = '';
+    badge.textContent = '🎁 Trial: sisa ' + jamSisa + ' jam';
+    badge.classList.toggle('low', jamSisa <= 6);
+    return;
+  }
   var hariSisa = Math.max(0, Math.ceil(msSisa / 86400000));
   badge.style.display = '';
   badge.textContent = '⏳ Sisa Akses: ' + hariSisa + ' hari';
@@ -2194,6 +2216,7 @@ async function aiJalankan(prompt, ikutC, peta){
 }
 
 document.getElementById('btnGenB').addEventListener('click', function(){
+  if(aiTerkunciTrial_()) return;
   var st = document.getElementById('bAiStatus');
   if(state.rhkNo===null || state.aksiIdx===null){
     st.textContent = 'Pilih RHK & rencana aksi pada langkah 2 terlebih dahulu.';
@@ -2265,6 +2288,7 @@ async function aiP2k2Kirim(tanpaFakta){
   }
 }
 document.getElementById('btnGenP2k2').addEventListener('click', function(){
+  if(aiTerkunciTrial_()) return;
   var st = document.getElementById('p2kAiStatus');
   if(!isP2K2()){ st.textContent = 'Pilih RHK P2K2 dan rencana aksi pelaksanaan pada langkah 2.'; return; }
   aiPopBuka(getSelectedRhk(), getSelectedAksiText());
@@ -2823,3 +2847,180 @@ renderTtd();
 window.addEventListener('load', fitPreviewZoom);
 /*__AKHIR_BAGIAN_4_SELESAI__*/
 /* ============ BLOK LOGIN & KREDIT (menimpa fungsi AI bawaan) ============ */
+
+
+/* =================== TAHAP 1: HARGA, TELEGRAM, KONTAK =================== */
+function bukaHarga(){ var o = document.getElementById('hargaOverlay'); if(o) o.style.display = 'flex'; }
+function tutupHarga(){ var o = document.getElementById('hargaOverlay'); if(o) o.style.display = 'none'; }
+
+var timerPollTelegram = null;
+function hentikanPollTelegram_(){ clearInterval(timerPollTelegram); timerPollTelegram = null; }
+
+/* Setelah daftar / ajukan perpanjangan: tampilkan tombol Telegram lalu pantau apakah sudah ditekan Start */
+function siapkanTautanTelegram_(prefix, res){
+  var kotak = document.getElementById(prefix + 'Box');
+  var link = document.getElementById(prefix + 'Link');
+  var st = document.getElementById(prefix + 'Status');
+  if(!res || !res.telegramLink){ return; }
+  if(kotak) kotak.style.display = 'block';
+  link.href = res.telegramLink;
+  st.className = 'tg-status';
+  st.innerHTML = 'Tekan tombol di atas, lalu tekan <b>Start</b> di Telegram.';
+  hentikanPollTelegram_();
+  var kode = res.telegramKode, n = 0;
+  timerPollTelegram = setInterval(function(){
+    n++;
+    if(n > 150){ hentikanPollTelegram_(); return; } // ±10 menit
+    panggilAPI('telegramCek', { kode: kode }).then(function(r){
+      if(r && r.linked){
+        hentikanPollTelegram_();
+        st.className = 'tg-status ok';
+        st.textContent = '✅ Telegram terhubung! Token akan dikirim ke sana begitu akun diaktifkan.';
+      }
+    }).catch(function(){});
+  }, 4000);
+}
+
+/* Banner non-blokir untuk pengguna yang sudah login tetapi belum menghubungkan Telegram */
+function tampilkanBannerTelegram(){
+  try{
+    if(!currentUser || currentUser.telegramTerhubung) return;
+    var tunda = Number(SafeStorage.get('tg_banner_tunda') || 0);
+    if(tunda && Date.now() - tunda < 3 * 86400000) return; // ditunda 3 hari
+    var b = document.getElementById('tgBanner');
+    if(!b) return;
+    var em = document.getElementById('tgBannerEmail');
+    if(em && currentUser.email) em.value = currentUser.email;
+    b.style.display = 'block';
+  }catch(e){}
+}
+function tundaBannerTelegram(){
+  SafeStorage.set('tg_banner_tunda', String(Date.now()));
+  hentikanPollTelegram_();
+  var b = document.getElementById('tgBanner'); if(b) b.style.display = 'none';
+}
+function hubungkanTelegramSekarang(){
+  if(!currentUser || !currentUser.nip || !currentUser.token) return;
+  var st = document.getElementById('tgBannerStatus');
+  var btn = document.getElementById('tgBannerBtn');
+  var jendela = window.open('about:blank', '_blank'); // dibuka sinkron agar tidak diblokir browser
+  btn.disabled = true; st.className = 'tg-banner-status'; st.textContent = 'Menyiapkan tautan...';
+  panggilAPI('telegramKode', { nip: currentUser.nip, token: currentUser.token }).then(function(res){
+    btn.disabled = false;
+    if(res.status !== 'success'){
+      if(jendela) jendela.close();
+      st.textContent = res.message || 'Gagal menyiapkan tautan.';
+      return;
+    }
+    if(jendela){ jendela.location = res.link; }
+    st.innerHTML = 'Tekan <b>Start</b> di Telegram. ' + (jendela ? '' : '<a href="' + res.link + '" target="_blank" rel="noopener">Buka Telegram</a>');
+    hentikanPollTelegram_();
+    var n = 0;
+    timerPollTelegram = setInterval(function(){
+      n++;
+      if(n > 36){ hentikanPollTelegram_(); return; } // ±3 menit
+      panggilAPI('telegramStatus', { nip: currentUser.nip, token: currentUser.token }).then(function(r){
+        if(r && r.linked){
+          hentikanPollTelegram_();
+          currentUser.telegramTerhubung = true;
+          st.className = 'tg-banner-status ok';
+          st.textContent = '✅ Telegram terhubung! Terima kasih.';
+          setTimeout(function(){ var b = document.getElementById('tgBanner'); if(b) b.style.display = 'none'; }, 3500);
+        }
+      }).catch(function(){});
+    }, 5000);
+  }).catch(function(err){
+    btn.disabled = false;
+    if(jendela) jendela.close();
+    st.textContent = 'Gagal terhubung ke server: ' + err.message;
+  });
+}
+function simpanEmailBanner(){
+  var st = document.getElementById('tgBannerStatus');
+  var em = (document.getElementById('tgBannerEmail').value || '').trim();
+  if(!currentUser) return;
+  panggilAPI('simpanKontak', { nip: currentUser.nip, token: currentUser.token, email: em }).then(function(r){
+    st.className = 'tg-banner-status' + (r.status === 'success' ? ' ok' : '');
+    st.textContent = r.message || '';
+    if(r.status === 'success') currentUser.email = em;
+  }).catch(function(err){ st.textContent = 'Gagal: ' + err.message; });
+}
+
+
+/* =================== TRIAL: Sempurnakan AI terkunci (dikunci juga di server) =================== */
+function aiTerkunciTrial_(){
+  if(currentUser && currentUser.trial){ bukaTrialAi(); return true; }
+  return false;
+}
+function bukaTrialAi(){
+  var bt = document.getElementById('btnBayarTrial'); if(bt) bt.style.display = (currentUser && currentUser.bayarAktif) ? '' : 'none';
+  var o = document.getElementById('trialAiOverlay'); if(o) o.style.display = 'flex';
+}
+function tutupTrialAi(){ var o = document.getElementById('trialAiOverlay'); if(o) o.style.display = 'none'; }
+/* Tombol AI diberi tanda gembok selama trial; kembali normal untuk akun biasa */
+function terapkanModeTrial_(){
+  var trial = !!(currentUser && currentUser.trial);
+  [['btnGenB','Sempurnakan dengan AI (opsional)'], ['btnGenP2k2','Sempurnakan dengan AI (opsional)']].forEach(function(p){
+    var b = document.getElementById(p[0]); if(!b) return;
+    b.innerHTML = trial ? '&#128274; Sempurnakan dengan AI (setelah traktir kopi)' : '&#10024; ' + p[1];
+  });
+}
+
+
+/* =================== TRAKTIR NGOPI: bayar QRIS dari aplikasi (alternatif dari bot Telegram) =================== */
+var bayarKonteks = null, bayarPilih = 0, bayarData = null;
+function rupiahJS_(n){ return 'Rp' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function terapkanTombolBayar_(){
+  var b = document.getElementById('btnBayar'); if(!b) return;
+  b.style.display = (currentUser && !currentUser.gratis && currentUser.bayarAktif) ? '' : 'none';
+}
+function tutupBayar(){ var o = document.getElementById('bayarOverlay'); if(o) o.style.display = 'none'; }
+function bukaBayar(dariPerpanjangan){
+  var nip, token = '';
+  if(dariPerpanjangan){ nip = document.getElementById('perpanjanganNip').value; }
+  else if(currentUser){ nip = currentUser.nip; token = currentUser.token || ''; }
+  if(!nip) return;
+  bayarKonteks = { nip: nip, token: token }; bayarPilih = 0; bayarData = null;
+  document.getElementById('bayarOverlay').style.display = 'flex';
+  document.getElementById('bayarIsi').style.display = 'none';
+  var sub = document.getElementById('bayarSub'); sub.textContent = 'Memuat...';
+  panggilAPI('infoBayar', bayarKonteks).then(function(r){
+    if(r.status !== 'success'){ sub.textContent = r.message || 'Gagal memuat.'; return; }
+    if(!r.aktif){ sub.textContent = 'Pembayaran lewat aplikasi belum dibuka. Hubungi admin lewat bot Telegram.'; return; }
+    bayarData = r;
+    sub.textContent = 'Terima kasih sudah mau traktir ngopi, ' + (r.nama || '') + '! Hari yang kamu beli ditambahkan di atas sisa akses.';
+    var wadah = document.getElementById('bayarPaket'); wadah.innerHTML = '';
+    r.paket.forEach(function(p){
+      var tb = document.createElement('button'); tb.type = 'button'; tb.className = 'bayar-opsi'; tb.setAttribute('data-hari', p.hari);
+      var b1 = document.createElement('b'); b1.textContent = p.hari + ' hari';
+      var s1 = document.createElement('span'); s1.textContent = rupiahJS_(p.nominal);
+      tb.appendChild(b1); tb.appendChild(s1);
+      tb.addEventListener('click', function(){ pilihPaketBayar_(p.hari); });
+      wadah.appendChild(tb);
+    });
+    document.getElementById('bayarInfo').textContent = r.info || '';
+    if(r.bot) document.getElementById('bayarBotLink').href = r.bot;
+    document.getElementById('bayarNominal').innerHTML = 'Pilih paket dulu';
+    var btn = document.getElementById('bayarBtn'); btn.disabled = true;
+    var st = document.getElementById('bayarStatus'); st.textContent = ''; st.className = 'bayar-status';
+    document.getElementById('bayarIsi').style.display = 'block';
+  }).catch(function(err){ sub.textContent = 'Gagal terhubung ke server: ' + err.message; });
+}
+function pilihPaketBayar_(hari){
+  bayarPilih = hari;
+  Array.prototype.forEach.call(document.querySelectorAll('#bayarPaket .bayar-opsi'), function(el){
+    el.classList.toggle('pilih', Number(el.getAttribute('data-hari')) === hari);
+  });
+  var p = bayarData.paket.filter(function(x){ return x.hari === hari; })[0];
+  document.getElementById('bayarNominal').innerHTML = 'Bayar tepat <b>' + rupiahJS_(p.nominal) + '</b> (3 angka terakhir = kode unikmu)';
+  document.getElementById('bayarBtn').disabled = false;
+}
+function kirimSudahBayar(){
+  if(!bayarKonteks || !bayarPilih) return;
+  var btn = document.getElementById('bayarBtn'), st = document.getElementById('bayarStatus');
+  btn.disabled = true; st.className = 'bayar-status'; st.textContent = 'Mengirim...';
+  panggilAPI('sudahBayar', { nip: bayarKonteks.nip, token: bayarKonteks.token, hari: bayarPilih }).then(function(r){
+    if(r.status === 'success'){ st.className = 'bayar-status ok'; st.textContent = r.message; }
+    else { st.className = 'bayar-status err'; st.textContent = r.message || 'Gagal mengirim.'; btn.disabled = false; }
+  }).catch(function(err){ st.className = 'bayar-status err'; st.textContent = 'Gagal terhubung ke server: ' + err.message; btn.disabled = false; });
+}
