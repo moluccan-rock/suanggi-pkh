@@ -230,6 +230,7 @@ function cekStatusLogin(){
 function tampilkanFormLogin(){
   hentikanPollTelegram_();
   document.getElementById('loginLoading').style.display = 'none';
+  var tgG = document.getElementById('tgGerbangForm'); if(tgG) tgG.style.display = 'none';
   document.getElementById('registerForm').style.display = 'none';
   document.getElementById('registerSuccessBox').style.display = 'none';
   document.getElementById('perpanjanganForm').style.display = 'none';
@@ -239,6 +240,7 @@ function tampilkanFormLogin(){
 
 function tampilkanFormDaftar(){
   document.getElementById('loginLoading').style.display = 'none';
+  var tgG = document.getElementById('tgGerbangForm'); if(tgG) tgG.style.display = 'none';
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('registerSuccessBox').style.display = 'none';
   document.getElementById('perpanjanganForm').style.display = 'none';
@@ -250,6 +252,7 @@ function tampilkanFormDaftar(){
 function tampilkanFormPerpanjangan(nip, nama, pesan, bayarAktif){
   var bp = document.getElementById('btnBayarPerp'); if(bp) bp.style.display = bayarAktif ? '' : 'none';
   document.getElementById('loginLoading').style.display = 'none';
+  var tgG = document.getElementById('tgGerbangForm'); if(tgG) tgG.style.display = 'none';
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('registerForm').style.display = 'none';
   document.getElementById('registerSuccessBox').style.display = 'none';
@@ -2856,6 +2859,45 @@ function tutupHarga(){ var o = document.getElementById('hargaOverlay'); if(o) o.
 var timerPollTelegram = null;
 function hentikanPollTelegram_(){ clearInterval(timerPollTelegram); timerPollTelegram = null; }
 
+/* Hubungkan Telegram dari gerbang login (pengguna lama, tanpa login): NIP + No. HP terdaftar */
+function tampilkanFormTgGerbang(){
+  ['loginLoading','loginForm','registerForm','registerSuccessBox','perpanjanganForm'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.style.display = 'none';
+  });
+  hentikanPollTelegram_();
+  var nipLogin = document.getElementById('loginNip');
+  var nipG = document.getElementById('tgGerbangNip');
+  if(nipLogin && nipG && nipLogin.value && !nipG.value) nipG.value = nipLogin.value;
+  var box = document.getElementById('tgGerbangBox'); if(box) box.style.display = 'none';
+  var ps = document.getElementById('tgGerbangPesan'); if(ps) ps.style.display = 'none';
+  document.getElementById('tgGerbangForm').style.display = 'block';
+  document.getElementById('loginError').style.display = 'none';
+}
+function prosesTgGerbang(){
+  var nip = (document.getElementById('tgGerbangNip').value || '').trim();
+  var hp = (document.getElementById('tgGerbangHp').value || '').trim();
+  var ps = document.getElementById('tgGerbangPesan');
+  var btn = document.getElementById('tgGerbangBtn');
+  var box = document.getElementById('tgGerbangBox');
+  ps.style.display = 'none'; box.style.display = 'none';
+  if(!nip || !hp){ ps.textContent = 'Isi NIP dan No. HP yang terdaftar.'; ps.style.display = 'block'; return; }
+  btn.disabled = true; var teksAsli = btn.textContent; btn.textContent = 'Memeriksa...';
+  panggilAPI('telegramKodeGerbang', { nip: nip, hp: hp }).then(function(res){
+    btn.disabled = false; btn.textContent = teksAsli;
+    if(!res || res.status !== 'success'){
+      ps.textContent = (res && res.message) || 'Gagal. Coba lagi.'; ps.style.display = 'block'; return;
+    }
+    if(res.linked){
+      ps.style.color = '#bbf7d0'; ps.textContent = res.message; ps.style.display = 'block'; return;
+    }
+    ps.style.color = '#fecaca';
+    siapkanTautanTelegram_('tgGerbang', res);
+  }).catch(function(){
+    btn.disabled = false; btn.textContent = teksAsli;
+    ps.style.color = '#fecaca'; ps.textContent = 'Tidak bisa menghubungi server. Coba lagi.'; ps.style.display = 'block';
+  });
+}
+
 /* Setelah daftar / ajukan perpanjangan: tampilkan tombol Telegram lalu pantau apakah sudah ditekan Start */
 function siapkanTautanTelegram_(prefix, res){
   var kotak = document.getElementById(prefix + 'Box');
@@ -2875,7 +2917,7 @@ function siapkanTautanTelegram_(prefix, res){
       if(r && r.linked){
         hentikanPollTelegram_();
         st.className = 'tg-status ok';
-        st.textContent = '✅ Telegram terhubung! Token akan dikirim ke sana begitu akun diaktifkan.';
+        st.textContent = (prefix === 'tgGerbang') ? '✅ Telegram terhubung! Sekarang kamu bisa kembali ke halaman masuk. Pengingat dan token berikutnya dikirim ke Telegram.' : '✅ Telegram terhubung! Token akan dikirim ke sana begitu akun diaktifkan.';
       }
     }).catch(function(){});
   }, 4000);

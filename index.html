@@ -92,6 +92,7 @@
       <button class="btn btn-gold" id="btnLoginMasuk" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a><br>
+        Sudah pernah daftar? <a href="javascript:void(0)" onclick="tampilkanFormTgGerbang()" style="color:#fde68a; font-weight:600;">📲 Hubungkan Telegram</a><br>
         <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:700; display:inline-block; margin-top:8px;">☕ Lihat Paket dan Harga</a>
       </p>
     </div>
@@ -153,6 +154,30 @@
         <p style="margin:0 0 8px;"><b>Hubungkan Telegram</b> supaya token baru langsung sampai ke kamu.</p>
         <a class="tg-link" id="tgPerpLink" href="#" target="_blank" rel="noopener">📲 Hubungkan Telegram</a>
         <p id="tgPerpStatus" class="tg-status">Tekan tombol, lalu tekan <b>Start</b> di Telegram.</p>
+      </div>
+      <p style="text-align:center; margin-top:16px; font-size:12px;">
+        <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#fde68a; font-weight:600;">Kembali ke Halaman Masuk</a>
+      </p>
+    </div>
+
+    <!-- Hubungkan Telegram dari gerbang login (tanpa login): NIP + No. HP terdaftar -->
+    <div id="tgGerbangForm" style="display:none; text-align:left;">
+      <p style="font-size:13px; color:#fde68a; font-weight:600; margin:0 0 6px;">Hubungkan Telegram</p>
+      <p style="font-size:12px; color:rgba(255,255,255,.82); margin:0 0 14px;">Untuk akun yang sudah terdaftar. Isi NIP dan No. HP yang dulu didaftarkan, lalu tekan tombol. Token dan pengingat masa aktif akan dikirim ke Telegram.</p>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px;">NIP</label>
+        <input type="text" id="tgGerbangNip" inputmode="numeric" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px;">No. HP yang terdaftar</label>
+        <input type="text" id="tgGerbangHp" inputmode="tel" placeholder="cth. 08123456789" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+      </div>
+      <button class="btn btn-gold" id="tgGerbangBtn" style="width:100%; justify-content:center;" onclick="prosesTgGerbang()">Buat Tautan Telegram</button>
+      <div id="tgGerbangPesan" style="display:none; margin-top:10px; font-size:12px; color:#fecaca;"></div>
+      <div id="tgGerbangBox" class="tg-box" style="display:none; margin-top:14px;">
+        <p style="margin:0 0 8px;"><b>Tekan tombol di bawah</b>, lalu tekan <b>Start</b> di Telegram.</p>
+        <a class="tg-link" id="tgGerbangLink" href="#" target="_blank" rel="noopener">📲 Hubungkan Telegram</a>
+        <p id="tgGerbangStatus" class="tg-status">Menunggu Anda menekan Start...</p>
       </div>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#fde68a; font-weight:600;">Kembali ke Halaman Masuk</a>
