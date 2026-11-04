@@ -2853,7 +2853,44 @@ window.addEventListener('load', fitPreviewZoom);
 
 
 /* =================== TAHAP 1: HARGA, TELEGRAM, KONTAK =================== */
-function bukaHarga(){ var o = document.getElementById('hargaOverlay'); if(o) o.style.display = 'flex'; }
+var hargaPilih = 0;
+function bukaHarga(){
+  hargaPilih = 0;
+  Array.prototype.forEach.call(document.querySelectorAll('#hargaOverlay .harga-item'), function(el){ el.classList.remove('pilih'); });
+  var btn = document.getElementById('hargaLanjutBtn'); if(btn){ btn.disabled = true; btn.textContent = 'Pilih paket dulu'; }
+  var ps = document.getElementById('hargaPesan'); if(ps) ps.style.display = 'none';
+  var nb = document.getElementById('hargaNipBox'); if(nb) nb.style.display = hargaNipTersedia_() ? 'none' : 'block';
+  var o = document.getElementById('hargaOverlay'); if(o) o.style.display = 'flex';
+}
+/* NIP yang sudah diketahui: dari sesi login, atau dari form perpanjangan yang sedang terbuka */
+function hargaNipTersedia_(){
+  if(currentUser && currentUser.nip) return currentUser.nip;
+  var pf = document.getElementById('perpanjanganForm'), pn = document.getElementById('perpanjanganNip');
+  if(pf && pf.style.display === 'block' && pn && pn.value) return pn.value;
+  return '';
+}
+function pilihHarga(hari){
+  hargaPilih = hari;
+  Array.prototype.forEach.call(document.querySelectorAll('#hargaOverlay .harga-item'), function(el){
+    el.classList.toggle('pilih', Number(el.getAttribute('data-hari')) === hari);
+  });
+  var btn = document.getElementById('hargaLanjutBtn'); btn.disabled = false;
+  btn.textContent = 'Lanjut bayar paket ' + hari + ' hari';
+  var ps = document.getElementById('hargaPesan'); if(ps) ps.style.display = 'none';
+}
+function lanjutBayarDariHarga(){
+  if(!hargaPilih) return;
+  var nip = hargaNipTersedia_();
+  if(!nip){
+    nip = (document.getElementById('hargaNip').value || '').replace(/\D/g, '');
+    if(nip.length < 10){
+      var ps = document.getElementById('hargaPesan'); ps.textContent = 'Isi NIP kamu dulu, lalu tekan lanjut.'; ps.style.display = 'block'; return;
+    }
+  }
+  var hari = hargaPilih;
+  tutupHarga();
+  bukaBayar(false, nip, hari);
+}
 function tutupHarga(){ var o = document.getElementById('hargaOverlay'); if(o) o.style.display = 'none'; }
 
 var timerPollTelegram = null;
@@ -3017,9 +3054,13 @@ function terapkanTombolBayar_(){
   b.style.display = (currentUser && !currentUser.gratis && currentUser.bayarAktif) ? '' : 'none';
 }
 function tutupBayar(){ var o = document.getElementById('bayarOverlay'); if(o) o.style.display = 'none'; }
-function bukaBayar(dariPerpanjangan){
+function bukaBayar(dariPerpanjangan, nipManual, hariAwal){
   var nip, token = '';
-  if(dariPerpanjangan){ nip = document.getElementById('perpanjanganNip').value; }
+  if(nipManual){
+    nip = nipManual;
+    if(currentUser && String(currentUser.nip) === String(nipManual)) token = currentUser.token || '';
+  }
+  else if(dariPerpanjangan){ nip = document.getElementById('perpanjanganNip').value; }
   else if(currentUser){ nip = currentUser.nip; token = currentUser.token || ''; }
   if(!nip) return;
   bayarKonteks = { nip: nip, token: token }; bayarPilih = 0; bayarData = null;
@@ -3046,6 +3087,7 @@ function bukaBayar(dariPerpanjangan){
     var btn = document.getElementById('bayarBtn'); btn.disabled = true;
     var st = document.getElementById('bayarStatus'); st.textContent = ''; st.className = 'bayar-status';
     document.getElementById('bayarIsi').style.display = 'block';
+    if(hariAwal && r.paket.some(function(p){ return p.hari === hariAwal; })) pilihPaketBayar_(hariAwal);
   }).catch(function(err){ sub.textContent = 'Gagal terhubung ke server: ' + err.message; });
 }
 function pilihPaketBayar_(hari){

@@ -196,18 +196,24 @@
     <p class="harga-sub">Pakai Suanggi PKH itu murah — cukup traktir ngopi. Harga jelas, tanpa biaya tersembunyi.</p>
     <div class="harga-trial">🎁 <b>Coba gratis 24 jam</b> untuk akun baru (tanpa Sempurnakan AI). Dihitung sejak login pertama.</div>
     <div class="harga-grid">
-      <div class="harga-item">
+      <button type="button" class="harga-item" data-hari="7" onclick="pilihHarga(7)">
         <div class="harga-hari">7 hari</div>
         <div class="harga-rp">Rp7.000</div>
         <div class="harga-ket">Pas untuk satu laporan bulanan</div>
-      </div>
-      <div class="harga-item harga-hemat">
+      </button>
+      <button type="button" class="harga-item" data-hari="30" onclick="pilihHarga(30)">
         <div class="harga-tag">Lebih hemat</div>
         <div class="harga-hari">30 hari</div>
         <div class="harga-rp">Rp25.000</div>
         <div class="harga-ket">Setara Rp833 per hari</div>
-      </div>
+      </button>
     </div>
+    <div id="hargaNipBox" style="display:none; margin:0 0 12px;">
+      <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:#4b5563;">NIP kamu (untuk lanjut bayar)</label>
+      <input type="text" id="hargaNip" inputmode="numeric" placeholder="NIP 18 digit" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
+    </div>
+    <button type="button" class="btn btn-gold" id="hargaLanjutBtn" style="width:100%; justify-content:center; margin:0 0 10px;" disabled onclick="lanjutBayarDariHarga()">Pilih paket dulu</button>
+    <div id="hargaPesan" style="display:none; font-size:12px; color:#b91c1c; margin:0 0 10px;"></div>
     <ul class="harga-list">
       <li>Masa aktif dihitung per hari, mulai saat akun diaktifkan.</li>
       <li>Membeli lagi sebelum habis? Hari yang tersisa tidak hilang — hari baru ditambahkan di atasnya.</li>
@@ -215,7 +221,7 @@
       <li>Cara bayar: ketik <b>/beli</b> di bot Telegram, scan QRIS, lalu kirim foto bukti. Admin mencocokkan dan menambah hari akses Anda.</li>
       <li>Fitur <b>Sempurnakan AI</b> terbuka setelah traktir kopi.</li>
     </ul>
-    <button type="button" class="btn btn-gold" style="width:100%; justify-content:center;" onclick="tutupHarga()">Mengerti</button>
+    <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center; color:#4b5563;" onclick="tutupHarga()">Tutup</button>
   </div>
 </div>
 

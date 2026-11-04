@@ -792,8 +792,9 @@ body.role-locked .tema-picker{display:flex;}
 .harga-sub{font-size:13px; color:#4b5563; margin:0 0 16px; line-height:1.45;}
 .harga-x{position:absolute; top:8px; right:12px; border:0; background:none; font-size:26px; line-height:1; color:#6b7280; cursor:pointer;}
 .harga-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
-.harga-item{position:relative; border:1.5px solid #e5e7eb; border-radius:12px; padding:14px 10px; text-align:center;}
-.harga-item.harga-hemat{border-color:#d97706; background:#fffbeb;}
+.harga-item{position:relative; border:1.5px solid #e5e7eb; border-radius:12px; padding:14px 10px; text-align:center; background:#fff; font:inherit; color:inherit; cursor:pointer; width:100%;}
+.harga-item:hover{border-color:#d97706;}
+.harga-item.pilih{border-color:#d97706; background:#fffbeb; box-shadow:0 0 0 2px rgba(217,119,6,.25);}
 .harga-tag{position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:#d97706; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap;}
 .harga-hari{font-size:13px; font-weight:700; color:#4b5563;}
 .harga-rp{font-size:24px; font-weight:800; color:#111827; margin:4px 0;}
