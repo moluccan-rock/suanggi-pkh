@@ -93,8 +93,9 @@
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a><br>
         Sudah pernah daftar? <a href="javascript:void(0)" onclick="tampilkanFormTgGerbang()" style="color:#fde68a; font-weight:600;">📲 Hubungkan Telegram</a><br>
-        <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:700; display:inline-block; margin-top:8px;">☕ Lihat Paket dan Harga</a>
       </p>
+      <button type="button" class="btn btn-gold" id="btnBayarGerbang" style="width:100%; justify-content:center; margin-top:4px;" onclick="bukaHarga()">☕ Bayar / Traktir Ngopi (tanpa login)</button>
+      <p style="text-align:center; margin:8px 0 0; font-size:11px; color:rgba(255,255,255,.75);">Belum bisa masuk atau Telegram bermasalah? Bayar langsung di sini, admin aktifkan akunmu.</p>
     </div>
 
     <!-- FORM 2: PENDAFTARAN (Nama + NIP + WA/Telegram) -->
@@ -179,6 +180,7 @@
         <a class="tg-link" id="tgGerbangLink" href="#" target="_blank" rel="noopener">📲 Hubungkan Telegram</a>
         <p id="tgGerbangStatus" class="tg-status">Menunggu Anda menekan Start...</p>
       </div>
+      <button type="button" class="btn btn-gold" id="btnBayarDariTg" style="width:100%; justify-content:center; margin-top:14px;" onclick="tutupFormTgBukaHarga()">☕ Tidak bisa Telegram? Bayar langsung</button>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#fde68a; font-weight:600;">Kembali ke Halaman Masuk</a>
       </p>

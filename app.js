@@ -2910,6 +2910,7 @@ function tampilkanFormTgGerbang(){
   document.getElementById('tgGerbangForm').style.display = 'block';
   document.getElementById('loginError').style.display = 'none';
 }
+function tutupFormTgBukaHarga(){ tampilkanFormLogin(); bukaHarga(); }
 function prosesTgGerbang(){
   var nip = (document.getElementById('tgGerbangNip').value || '').trim();
   var hp = (document.getElementById('tgGerbangHp').value || '').trim();
