@@ -94,8 +94,8 @@
         Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a><br>
         Sudah pernah daftar? <a href="javascript:void(0)" onclick="tampilkanFormTgGerbang()" style="color:#fde68a; font-weight:600;">📲 Hubungkan Telegram</a><br>
       </p>
-      <button type="button" class="btn btn-gold" id="btnBayarGerbang" style="width:100%; justify-content:center; margin-top:4px;" onclick="bukaHarga()">☕ Bayar / Traktir Ngopi (tanpa login)</button>
-      <p style="text-align:center; margin:8px 0 0; font-size:11px; color:rgba(255,255,255,.75);">Belum bisa masuk atau Telegram bermasalah? Bayar langsung di sini, admin aktifkan akunmu.</p>
+      <button type="button" class="btn btn-gold" id="btnBayarGerbang" style="width:100%; justify-content:center; margin-top:4px;" onclick="bukaHarga()">☕ Traktir Ngopi (tanpa login)</button>
+      <p style="text-align:center; margin:8px 0 0; font-size:11px; color:rgba(255,255,255,.75);">Belum bisa masuk atau Telegram bermasalah? Traktir Ngopi langsung di sini, admin aktifkan akunmu.</p>
     </div>
 
     <!-- FORM 2: PENDAFTARAN (Nama + NIP + WA/Telegram) -->
@@ -143,7 +143,7 @@
     <!-- Form pengajuan PERPANJANGAN token (muncul otomatis saat token kedaluwarsa) -->
     <div id="perpanjanganForm" style="display:none; text-align:left;">
       <p style="font-size:13px; color:#fde68a; font-weight:600; margin:0 0 6px;" id="perpanjanganTitle">Masa aktif akun Anda sudah berakhir.</p>
-      <p style="font-size:12px; color:rgba(255,255,255,.82); margin:0 0 15px;">Yuk lanjut ☕ Kalau Telegram sudah terhubung, cukup ketik <b>/beli</b> di bot lalu kirim bukti pembayaran. Atau isi jumlah hari di bawah (maks. 7 hari) dan admin akan mengaktifkan kembali — token baru dikirim otomatis. <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:600;">Lihat Paket dan Harga</a></p>
+      <p style="font-size:12px; color:rgba(255,255,255,.82); margin:0 0 15px;">Yuk lanjut ☕ Kalau Telegram sudah terhubung, cukup ketik <b>/beli</b> di bot lalu kirim bukti transfer. Atau isi jumlah hari di bawah (maks. 7 hari) dan admin akan mengaktifkan kembali — token baru dikirim otomatis. <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:600;">Lihat Paket dan Harga</a></p>
       <input type="hidden" id="perpanjanganNip">
       <button type="button" class="btn btn-gold" id="btnBayarPerp" style="display:none; width:100%; justify-content:center; margin:0 0 14px;" onclick="bukaBayar(true)">☕ Traktir Ngopi dengan QRIS</button>
       <div style="margin-bottom:20px;">
@@ -180,7 +180,7 @@
         <a class="tg-link" id="tgGerbangLink" href="#" target="_blank" rel="noopener">📲 Hubungkan Telegram</a>
         <p id="tgGerbangStatus" class="tg-status">Menunggu Anda menekan Start...</p>
       </div>
-      <button type="button" class="btn btn-gold" id="btnBayarDariTg" style="width:100%; justify-content:center; margin-top:14px;" onclick="tutupFormTgBukaHarga()">☕ Tidak bisa Telegram? Bayar langsung</button>
+      <button type="button" class="btn btn-gold" id="btnBayarDariTg" style="width:100%; justify-content:center; margin-top:14px;" onclick="tutupFormTgBukaHarga()">☕ Tidak bisa Telegram? Traktir Ngopi langsung</button>
       <p style="text-align:center; margin-top:16px; font-size:12px;">
         <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#fde68a; font-weight:600;">Kembali ke Halaman Masuk</a>
       </p>
@@ -211,7 +211,7 @@
       </button>
     </div>
     <div id="hargaNipBox" style="display:none; margin:0 0 12px;">
-      <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:#4b5563;">NIP kamu (untuk lanjut bayar)</label>
+      <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:#4b5563;">NIP kamu (untuk lanjut traktir)</label>
       <input type="text" id="hargaNip" inputmode="numeric" placeholder="NIP 18 digit" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
     </div>
     <button type="button" class="btn btn-gold" id="hargaLanjutBtn" style="width:100%; justify-content:center; margin:0 0 10px;" disabled onclick="lanjutBayarDariHarga()">Pilih paket dulu</button>
@@ -220,7 +220,7 @@
       <li>Masa aktif dihitung per hari, mulai saat akun diaktifkan.</li>
       <li>Membeli lagi sebelum habis? Hari yang tersisa tidak hilang — hari baru ditambahkan di atasnya.</li>
       <li>Pengingat masa aktif dan token dikirim lewat Telegram (cadangan email).</li>
-      <li>Cara bayar: ketik <b>/beli</b> di bot Telegram, scan QRIS, lalu kirim foto bukti. Admin mencocokkan dan menambah hari akses Anda.</li>
+      <li>Cara traktir: pilih paket di sini, scan QRIS lalu transfer sesuai nominal, lampirkan foto bukti, dan tekan <b>Saya sudah traktir</b>. Admin mencocokkan dan menambah hari akses Anda. Bisa juga lewat bot Telegram (<b>/beli</b>).</li>
       <li>Fitur <b>Sempurnakan AI</b> terbuka setelah traktir kopi.</li>
     </ul>
     <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center; color:#4b5563;" onclick="tutupHarga()">Tutup</button>
@@ -243,10 +243,17 @@
         <div id="bayarQrisKosong" style="display:none;" class="bayar-info">Gambar QRIS belum dipasang admin. Minta admin lewat bot Telegram.</div>
       </div>
       <div class="bayar-info" id="bayarInfo"></div>
-      <div class="bayar-langkah">3. Setelah membayar</div>
-      <button type="button" class="btn btn-gold" id="bayarBtn" style="width:100%; justify-content:center;" disabled onclick="kirimSudahBayar()">✅ Saya sudah bayar</button>
+      <div class="bayar-langkah">3. Setelah transfer, lampirkan foto bukti</div>
+      <input type="file" id="bayarFoto" accept="image/*" style="display:none;" onchange="pilihFotoBukti(this)">
+      <button type="button" class="btn btn-ghost" id="bayarFotoBtn" style="width:100%; justify-content:center; color:#7f1d1d; border:1px solid #d6b4b4;" onclick="document.getElementById('bayarFoto').click()">📷 Pilih foto / tangkapan layar bukti transfer</button>
+      <div id="bayarFotoWrap" class="bayar-foto" style="display:none;">
+        <img id="bayarFotoPrev" alt="Pratinjau bukti transfer">
+        <div><span id="bayarFotoInfo"></span> · <a href="javascript:void(0)" onclick="document.getElementById('bayarFoto').click()">Ganti foto</a></div>
+      </div>
+      <button type="button" class="btn btn-gold" id="bayarBtn" style="width:100%; justify-content:center; margin-top:10px;" disabled onclick="kirimSudahBayar()">✅ Saya sudah traktir</button>
+      <div class="bayar-info" id="bayarSyarat" style="margin-top:6px;">Pilih paket dan lampirkan foto bukti dulu, lalu tombol ini aktif.</div>
       <div class="bayar-status" id="bayarStatus"></div>
-      <p class="bayar-alt">Lebih suka lewat Telegram? Ketik <b>/beli</b> di <a id="bayarBotLink" href="https://t.me/esuanggiPKH_bot" target="_blank" rel="noopener">@esuanggiPKH_bot</a> lalu kirim foto bukti. Hasilnya sama.</p>
+      <p class="bayar-alt">Lebih suka lewat Telegram? Ketik <b>/beli</b> di <a id="bayarBotLink" href="https://t.me/esuanggiPKH_bot" target="_blank" rel="noopener">@esuanggiPKH_bot</a> lalu kirim foto bukti. Hasilnya sama; admin menyetujui dengan satu ketukan.</p>
     </div>
     <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center; color:#7f1d1d; border:1px solid #d6b4b4; margin-top:10px;" onclick="tutupBayar()">Tutup</button>
   </div>
@@ -260,7 +267,7 @@
     <p class="harga-sub">Fitur ini terbuka setelah traktir ngopi ☕ Selama trial, uraian laporan tetap bisa diketik manual dan PDF tetap bisa diunduh.</p>
     <ul class="harga-list">
       <li>Paket: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</li>
-      <li>Bayar lewat tombol <b>Traktir Ngopi</b> di aplikasi, atau ketik <b>/beli</b> di bot Telegram.</li>
+      <li>Traktir lewat tombol <b>Traktir Ngopi</b> di aplikasi, atau ketik <b>/beli</b> di bot Telegram.</li>
       <li>Sudah dikonfirmasi admin? Keluar lalu masuk lagi supaya fitur terbuka.</li>
     </ul>
     <button type="button" class="btn btn-gold" id="btnBayarTrial" style="display:none; width:100%; justify-content:center; margin-bottom:8px;" onclick="tutupTrialAi();bukaBayar()">☕ Traktir Ngopi sekarang</button>

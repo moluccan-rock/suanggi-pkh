@@ -575,7 +575,7 @@ function updateCreditBadge(){
   if(!badge) return;
   if(currentUser && currentUser.gratis){
     badge.style.display = '';
-    badge.textContent = '✨ Akses Gratis';
+    badge.textContent = currentUser.selaluAktif ? '✨ Selalu Aktif' : '✨ Akses Gratis';
     badge.classList.remove('low');
     return;
   }
@@ -2875,7 +2875,7 @@ function pilihHarga(hari){
     el.classList.toggle('pilih', Number(el.getAttribute('data-hari')) === hari);
   });
   var btn = document.getElementById('hargaLanjutBtn'); btn.disabled = false;
-  btn.textContent = 'Lanjut bayar paket ' + hari + ' hari';
+  btn.textContent = 'Lanjut traktir paket ' + hari + ' hari';
   var ps = document.getElementById('hargaPesan'); if(ps) ps.style.display = 'none';
 }
 function lanjutBayarDariHarga(){
@@ -3048,7 +3048,8 @@ function terapkanModeTrial_(){
 
 
 /* =================== TRAKTIR NGOPI: bayar QRIS dari aplikasi (alternatif dari bot Telegram) =================== */
-var bayarKonteks = null, bayarPilih = 0, bayarData = null;
+var bayarKonteks = null, bayarPilih = 0, bayarData = null, bayarFotoData = null;
+var BUKTI_SISI_MAKS = 1280, BUKTI_BYTE_TARGET = 420 * 1024;
 function rupiahJS_(n){ return 'Rp' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function terapkanTombolBayar_(){
   var b = document.getElementById('btnBayar'); if(!b) return;
@@ -3065,12 +3066,14 @@ function bukaBayar(dariPerpanjangan, nipManual, hariAwal){
   else if(currentUser){ nip = currentUser.nip; token = currentUser.token || ''; }
   if(!nip) return;
   bayarKonteks = { nip: nip, token: token }; bayarPilih = 0; bayarData = null;
+  resetFotoBukti_();
+  var bb = document.getElementById('bayarBtn'); if(bb) bb.style.display = '';
   document.getElementById('bayarOverlay').style.display = 'flex';
   document.getElementById('bayarIsi').style.display = 'none';
   var sub = document.getElementById('bayarSub'); sub.textContent = 'Memuat...';
   panggilAPI('infoBayar', bayarKonteks).then(function(r){
     if(r.status !== 'success'){ sub.textContent = r.message || 'Gagal memuat.'; return; }
-    if(!r.aktif){ sub.textContent = 'Pembayaran lewat aplikasi belum dibuka. Hubungi admin lewat bot Telegram.'; return; }
+    if(!r.aktif){ sub.textContent = 'Traktir Ngopi lewat aplikasi belum dibuka. Hubungi admin lewat bot Telegram.'; return; }
     bayarData = r;
     sub.textContent = 'Terima kasih sudah mau traktir ngopi, ' + (r.nama || '') + '! Hari yang kamu beli ditambahkan di atas sisa akses.';
     var wadah = document.getElementById('bayarPaket'); wadah.innerHTML = '';
@@ -3085,8 +3088,8 @@ function bukaBayar(dariPerpanjangan, nipManual, hariAwal){
     document.getElementById('bayarInfo').textContent = r.info || '';
     if(r.bot) document.getElementById('bayarBotLink').href = r.bot;
     document.getElementById('bayarNominal').innerHTML = 'Pilih paket dulu';
-    var btn = document.getElementById('bayarBtn'); btn.disabled = true;
     var st = document.getElementById('bayarStatus'); st.textContent = ''; st.className = 'bayar-status';
+    perbaruiTombolKirim_();
     document.getElementById('bayarIsi').style.display = 'block';
     if(hariAwal && r.paket.some(function(p){ return p.hari === hariAwal; })) pilihPaketBayar_(hariAwal);
   }).catch(function(err){ sub.textContent = 'Gagal terhubung ke server: ' + err.message; });
@@ -3097,15 +3100,78 @@ function pilihPaketBayar_(hari){
     el.classList.toggle('pilih', Number(el.getAttribute('data-hari')) === hari);
   });
   var p = bayarData.paket.filter(function(x){ return x.hari === hari; })[0];
-  document.getElementById('bayarNominal').innerHTML = 'Bayar tepat <b>' + rupiahJS_(p.nominal) + '</b> (3 angka terakhir = kode unikmu)';
-  document.getElementById('bayarBtn').disabled = false;
+  document.getElementById('bayarNominal').innerHTML = 'Traktir tepat <b>' + rupiahJS_(p.nominal) + '</b> (3 angka terakhir = kode unikmu)';
+  perbaruiTombolKirim_();
+}
+/* Tombol kirim aktif hanya bila paket sudah dipilih DAN foto bukti sudah dilampirkan */
+function perbaruiTombolKirim_(){
+  var btn = document.getElementById('bayarBtn'), syarat = document.getElementById('bayarSyarat');
+  var siap = !!(bayarPilih && bayarFotoData);
+  if(btn) btn.disabled = !siap;
+  if(syarat){
+    syarat.style.display = siap ? 'none' : '';
+    syarat.textContent = !bayarPilih && !bayarFotoData ? 'Pilih paket dan lampirkan foto bukti dulu, lalu tombol ini aktif.'
+      : (!bayarPilih ? 'Pilih paket (7 atau 30 hari) dulu.' : 'Lampirkan foto bukti transfer dulu.');
+  }
+}
+function resetFotoBukti_(){
+  bayarFotoData = null;
+  var inp = document.getElementById('bayarFoto'); if(inp) inp.value = '';
+  var w = document.getElementById('bayarFotoWrap'); if(w) w.style.display = 'none';
+  var fb = document.getElementById('bayarFotoBtn'); if(fb) fb.style.display = '';
+}
+/* Foto dikecilkan di HP user: sisi terpanjang maks 1280 px, JPEG ~<420 KB, supaya cepat terkirim walau sinyal lemah */
+function kecilkanFoto_(file, selesai, gagal){
+  var url = null;
+  try { url = (window.URL || window.webkitURL).createObjectURL(file); } catch(e){ gagal('Foto tidak bisa dibaca.'); return; }
+  var img = new Image();
+  img.onerror = function(){ try{ URL.revokeObjectURL(url); }catch(e){} gagal('Foto tidak bisa dibuka. Coba pakai tangkapan layar (screenshot) bukti transfer.'); };
+  img.onload = function(){
+    try{
+      var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      if(!w || !h){ gagal('Foto tidak valid.'); return; }
+      var skala = Math.min(1, BUKTI_SISI_MAKS / Math.max(w, h));
+      var cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(w * skala)); cv.height = Math.max(1, Math.round(h * skala));
+      var cx = cv.getContext('2d'); cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+      var q = 0.82, out = cv.toDataURL('image/jpeg', q);
+      while(out.length * 0.75 > BUKTI_BYTE_TARGET && q > 0.4){ q -= 0.1; out = cv.toDataURL('image/jpeg', q); }
+      if(out.length * 0.75 > 650 * 1024){ gagal('Foto terlalu besar. Coba tangkapan layar yang lebih kecil.'); return; }
+      try{ URL.revokeObjectURL(url); }catch(e){}
+      selesai(out);
+    } catch(err){ gagal('Foto tidak bisa diproses: ' + err.message); }
+  };
+  img.src = url;
+}
+function pilihFotoBukti(input){
+  var f = input.files && input.files[0]; var st = document.getElementById('bayarStatus');
+  if(!f) return;
+  st.className = 'bayar-status'; st.textContent = '';
+  if(!/^image\//.test(f.type || '')){ bayarFotoData = null; st.className = 'bayar-status err'; st.textContent = 'Pilih berkas foto (JPG atau PNG).'; perbaruiTombolKirim_(); return; }
+  if(f.size > 25 * 1024 * 1024){ bayarFotoData = null; st.className = 'bayar-status err'; st.textContent = 'Foto terlalu besar. Pilih tangkapan layar yang lebih kecil.'; perbaruiTombolKirim_(); return; }
+  st.textContent = 'Memproses foto...';
+  kecilkanFoto_(f, function(dataUrl){
+    bayarFotoData = dataUrl; st.textContent = '';
+    document.getElementById('bayarFotoPrev').src = dataUrl;
+    document.getElementById('bayarFotoInfo').textContent = 'Foto siap (' + Math.round(dataUrl.length * 0.75 / 1024) + ' KB)';
+    document.getElementById('bayarFotoWrap').style.display = 'block';
+    document.getElementById('bayarFotoBtn').style.display = 'none';
+    perbaruiTombolKirim_();
+  }, function(pesan){
+    bayarFotoData = null; st.className = 'bayar-status err'; st.textContent = pesan; perbaruiTombolKirim_();
+  });
 }
 function kirimSudahBayar(){
-  if(!bayarKonteks || !bayarPilih) return;
+  if(!bayarKonteks || !bayarPilih || !bayarFotoData) return;
   var btn = document.getElementById('bayarBtn'), st = document.getElementById('bayarStatus');
-  btn.disabled = true; st.className = 'bayar-status'; st.textContent = 'Mengirim...';
-  panggilAPI('sudahBayar', { nip: bayarKonteks.nip, token: bayarKonteks.token, hari: bayarPilih }).then(function(r){
-    if(r.status === 'success'){ st.className = 'bayar-status ok'; st.textContent = r.message; }
+  btn.disabled = true; st.className = 'bayar-status'; st.textContent = 'Mengirim foto bukti...';
+  panggilAPI('sudahBayar', { nip: bayarKonteks.nip, token: bayarKonteks.token, hari: bayarPilih, foto: bayarFotoData }).then(function(r){
+    if(r.status === 'success'){
+      st.className = 'bayar-status ok'; st.textContent = r.message; btn.style.display = 'none';
+      var syarat = document.getElementById('bayarSyarat'); if(syarat) syarat.style.display = 'none';
+      var fb = document.getElementById('bayarFotoBtn'); if(fb) fb.style.display = 'none';
+      var w = document.getElementById('bayarFotoWrap'); if(w) w.style.display = 'none';
+      bayarFotoData = null;
+    }
     else { st.className = 'bayar-status err'; st.textContent = r.message || 'Gagal mengirim.'; btn.disabled = false; }
   }).catch(function(err){ st.className = 'bayar-status err'; st.textContent = 'Gagal terhubung ke server: ' + err.message; btn.disabled = false; });
 }
