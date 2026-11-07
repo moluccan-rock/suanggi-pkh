@@ -1781,7 +1781,7 @@ if(el.tagName === 'SELECT') el.addEventListener('change', ()=>{ state[key] = el.
 });
 }
 /* =================== TOMBOL AI + POPUP ISIAN FAKTA =================== */
-/* Alur: klik "Sempurnakan dengan AI" -> popup berisi 5 isian yang menyesuaikan RHK + rencana aksi terpilih
+/* Alur: klik "Sempurnakan Uraian" -> popup berisi 5 isian yang menyesuaikan RHK + rencana aksi terpilih
    -> AI merangkai jawaban menjadi Bagian B (uraian) dan Bagian C (hasil). RHK P2K2 tidak memakai popup
    (perilaku lama). Tanpa menekan tombol ini, aplikasi berjalan seperti biasa. */
 var AI_PENANDA_HASIL = '=====HASIL=====';
@@ -2147,8 +2147,8 @@ function aiPopBuka(item, aksiText){
     det.open = simpanKpm.length > 0;
   } else { det.style.display = 'none'; det.open = false; }
   document.getElementById('aiPopSub').textContent = isP2K2Aksi(item, aksiText)
-    ? 'Isi tanggal dan fakta kegiatan P2K2. AI akan menyusun Rangkuman Kegiatan; tanggal otomatis masuk ke laporan dan nomor laporan.'
-    : 'Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.';
+    ? 'Isi tanggal dan fakta kegiatan P2K2. Rangkuman Kegiatan akan disusun otomatis; tanggal otomatis masuk ke laporan dan nomor laporan.'
+    : 'Isi fakta kegiatan Anda. Isian akan dirangkai menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.';
   aiPopError(''); aiPopKunci(false);
   document.getElementById('aiPopOverlay').classList.add('open');
   var f = box.querySelector('textarea'); if(f) f.focus();
@@ -2162,7 +2162,7 @@ function aiBangunPromptOtomatis(item, aksiText){
     '- Indikator Kinerja Individu: "' + (item ? item.indikator : '') + '"\n' +
     '- Rencana Aksi yang dikerjakan bulan ini: "' + aksiText + '"\n' +
     '- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
-    'Tulis uraian pelaksanaan/realisasi HANYA untuk rencana aksi di atas (jangan bercerita tentang RHK atau aksi lain), 1-2 paragraf.';
+    'TUGAS: tulis uraian pelaksanaan HANYA untuk rencana aksi di atas, 1-2 paragraf singkat. Paragraf pertama menjelaskan tujuan kegiatan (sesuai RHK) dan kegiatan yang dilakukan (sesuai rencana aksi). Bila perlu, paragraf kedua menjelaskan kontribusinya pada indikator kinerja. Kalimat ringkas dan langsung, tanpa basa-basi, tanpa mengarang angka atau capaian.';
 }
 
 function aiBangunPromptFakta(item, aksiText, fakta, peta, judulKpm){
@@ -2186,9 +2186,9 @@ function aiBangunPromptFakta(item, aksiText, fakta, peta, judulKpm){
     'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; yang tidak tertulis di sini JANGAN dikarang, termasuk angka, tanggal, nama tempat, dan nama orang):\n' +
     daftar + blokKpm + '\n' +
     'TUGAS: tulis dua bagian, dipisahkan oleh satu baris yang berisi persis ' + AI_PENANDA_HASIL + '\n' +
-    '1) Bagian pertama = Uraian Pelaksanaan/Realisasi Kegiatan (1-satu paragraf naratif tunggal tanpa pemisah baris yang merangkai waktu, wilayah, kegiatan, dan pihak yang terlibat menjadi satu kesatuan kalimat yang mengalir).\n' +
-    '2) Bagian kedua = Hasil yang Dicapai (1 paragraf naratif: capaian dalam angka bila diberikan, temuan, kendala, dan tindak lanjut).\n' +
-    'Hanya untuk rencana aksi di atas. Jika suatu hal tidak diberikan, tulis kalimat umum yang sesuai RHK tanpa mengarang angka, atau gunakan penanda [isi sesuai data lapangan]. Jangan menulis judul bagian.';
+    '1) Bagian pertama = Uraian Pelaksanaan Kegiatan: satu paragraf tanpa pemisah baris. Mulai dari waktu dan wilayah, lalu kegiatan yang dilakukan sesuai rencana aksi dan pihak yang terlibat. Tujuan kegiatan harus terbaca dari RHK. Pakai kalimat ringkas dan langsung.\n' +
+    '2) Bagian kedua = Hasil yang Dicapai: satu paragraf. Sebutkan capaian (angka hanya bila diberikan) dan kaitkan dengan indikator kinerja di atas, lalu temuan, kendala, dan tindak lanjut bila ada. Jangan menyatakan indikator tercapai bila datanya tidak diberikan.\n' +
+    'Hanya untuk rencana aksi di atas. Jangan menyalin teks RHK atau indikator mentah-mentah. Jika suatu hal tidak diberikan, tulis kalimat umum yang sesuai RHK tanpa mengarang angka, atau pakai penanda [isi sesuai data lapangan]. Jangan menulis judul bagian.';
 }
 
 async function aiJalankan(prompt, ikutC, peta){
@@ -2249,7 +2249,7 @@ function aiBangunPromptP2k2(fakta){
   return 'Susun isi kolom "Rangkuman Kegiatan" pada Laporan Kegiatan Pertemuan Peningkatan Kemampuan Keluarga (P2K2), Program Keluarga Harapan (PKH), Kementerian Sosial RI.\n' +
     'KONTEKS:\n- Jabatan pelapor: ' + (p2kJabatanLabel() || state.jabatan) + '\n- Bulan/Tahun laporan: ' + state.bulan + ' ' + state.tahun + '\n' +
     'FAKTA DARI PELAPOR (satu-satunya fakta yang boleh dipakai; jangan mengarang angka, tanggal, nama tempat, atau nama orang):\n' + (daftar || '- (tidak ada fakta tambahan)') + '\n' + tambahan + '\n' +
-    'TUGAS: tulis 2 paragraf naratif berbahasa Indonesia baku, orang ketiga, yang menggambarkan jalannya pertemuan (pembukaan, penyampaian materi, diskusi/tanya jawab, simulasi bila ada, dan penutup) serta keterlibatan KPM. ' +
+    'TUGAS: tulis 2 paragraf singkat berbahasa Indonesia baku, orang ketiga, dengan kalimat ringkas dan langsung. Gambarkan jalannya pertemuan (pembukaan, penyampaian materi, diskusi atau tanya jawab, simulasi bila ada, dan penutup) serta keterlibatan KPM, sehingga tujuan P2K2 terbaca jelas. ' +
     'Jangan menyebut nama atau NIK KPM. Jangan menulis judul, daftar bernomor, atau tanda markdown. Bila suatu hal tidak diberikan, tulis kalimat umum yang wajar untuk P2K2 tanpa mengarang angka. BATAS KERAS: seluruh teks maksimal 900 karakter termasuk spasi.';
 }
 async function aiP2k2Kirim(tanpaFakta){
@@ -3027,7 +3027,7 @@ function simpanEmailBanner(){
 }
 
 
-/* =================== TRIAL: Sempurnakan AI terkunci (dikunci juga di server) =================== */
+/* =================== TRIAL: Sempurnakan Uraian terkunci (dikunci juga di server) =================== */
 function aiTerkunciTrial_(){
   if(currentUser && currentUser.trial){ bukaTrialAi(); return true; }
   return false;
@@ -3040,9 +3040,9 @@ function tutupTrialAi(){ var o = document.getElementById('trialAiOverlay'); if(o
 /* Tombol AI diberi tanda gembok selama trial; kembali normal untuk akun biasa */
 function terapkanModeTrial_(){
   var trial = !!(currentUser && currentUser.trial);
-  [['btnGenB','Sempurnakan dengan AI (opsional)'], ['btnGenP2k2','Sempurnakan dengan AI (opsional)']].forEach(function(p){
+  [['btnGenB','Sempurnakan Uraian (opsional)'], ['btnGenP2k2','Sempurnakan Uraian (opsional)']].forEach(function(p){
     var b = document.getElementById(p[0]); if(!b) return;
-    b.innerHTML = trial ? '&#128274; Sempurnakan dengan AI (setelah traktir kopi)' : '&#10024; ' + p[1];
+    b.innerHTML = trial ? '&#128274; Sempurnakan Uraian (setelah traktir kopi)' : '&#10024; ' + p[1];
   });
 }
 

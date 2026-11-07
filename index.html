@@ -117,7 +117,7 @@
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Email (opsional — pesan cadangan jika Telegram bermasalah)</label>
         <input type="email" id="regEmail" placeholder="cth. nama@gmail.com" autocomplete="email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
       </div>
-      <div class="trial-info">🎁 <b>Coba gratis 24 jam</b> — waktu dihitung sejak login pertama. Semua fitur bisa dipakai kecuali Sempurnakan AI. Suka? Lanjut traktir ngopi: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</div>
+      <div class="trial-info">🎁 <b>Coba gratis 24 jam</b> — waktu dihitung sejak login pertama. Semua fitur bisa dipakai kecuali Sempurnakan Uraian. Suka? Lanjut traktir ngopi: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</div>
       <label class="consent-row"><input type="checkbox" id="regSetuju"><span>Saya setuju menerima notifikasi (token, info akun, dan pengingat masa aktif) lewat Telegram atau email. *</span></label>
       <p class="tg-note">📲 Setelah menekan Daftar, hubungkan <b>Telegram</b> (satu ketukan). Begitu terhubung, akun aktif dan token langsung dikirim ke sana.</p>
       <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesRegistrasi()">Daftar</button>
@@ -196,7 +196,7 @@
     <button type="button" class="harga-x" onclick="tutupHarga()" aria-label="Tutup">×</button>
     <h2 id="hargaJudul">☕ Paket dan Harga</h2>
     <p class="harga-sub">Pakai Suanggi PKH itu murah — cukup traktir ngopi. Harga jelas, tanpa biaya tersembunyi.</p>
-    <div class="harga-trial">🎁 <b>Coba gratis 24 jam</b> untuk akun baru (tanpa Sempurnakan AI). Dihitung sejak login pertama.</div>
+    <div class="harga-trial">🎁 <b>Coba gratis 24 jam</b> untuk akun baru (tanpa Sempurnakan Uraian). Dihitung sejak login pertama.</div>
     <div class="harga-grid">
       <button type="button" class="harga-item" data-hari="7" onclick="pilihHarga(7)">
         <div class="harga-hari">7 hari</div>
@@ -221,7 +221,7 @@
       <li>Membeli lagi sebelum habis? Hari yang tersisa tidak hilang — hari baru ditambahkan di atasnya.</li>
       <li>Pengingat masa aktif dan token dikirim lewat Telegram (cadangan email).</li>
       <li>Cara traktir: pilih paket di sini, scan QRIS lalu transfer sesuai nominal, lampirkan foto bukti, dan tekan <b>Saya sudah traktir</b>. Admin mencocokkan dan menambah hari akses Anda. Bisa juga lewat bot Telegram (<b>/beli</b>).</li>
-      <li>Fitur <b>Sempurnakan AI</b> terbuka setelah traktir kopi.</li>
+      <li>Fitur <b>Sempurnakan Uraian</b> terbuka setelah traktir kopi.</li>
     </ul>
     <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center; color:#4b5563;" onclick="tutupHarga()">Tutup</button>
   </div>
@@ -259,11 +259,11 @@
   </div>
 </div>
 
-<!-- Sempurnakan AI terkunci saat trial -->
+<!-- Sempurnakan Uraian terkunci saat trial -->
 <div id="trialAiOverlay" class="harga-overlay" style="display:none;" onclick="if(event.target===this)tutupTrialAi()">
   <div class="harga-card" role="dialog" aria-modal="true">
     <button type="button" class="harga-x" onclick="tutupTrialAi()" aria-label="Tutup">×</button>
-    <h2>🔒 Sempurnakan AI</h2>
+    <h2>🔒 Sempurnakan Uraian</h2>
     <p class="harga-sub">Fitur ini terbuka setelah traktir ngopi ☕ Selama trial, uraian laporan tetap bisa diketik manual dan PDF tetap bisa diunduh.</p>
     <ul class="harga-list">
       <li>Paket: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</li>
@@ -490,10 +490,10 @@
       <div class="field">
         <label for="p2k_rangkuman">Rangkuman Kegiatan</label>
         <div style="margin-bottom:8px;">
-          <button type="button" class="btn-ai-generate" id="btnGenP2k2">&#10024; Sempurnakan dengan AI (opsional)</button>
+          <button type="button" class="btn-ai-generate" id="btnGenP2k2">&#10024; Sempurnakan Uraian (opsional)</button>
           <span class="ai-gen-status" id="p2kAiStatus"></span>
         </div>
-        <textarea id="p2k_rangkuman" rows="7" maxlength="1000" placeholder="Tulis ringkasan jalannya kegiatan, atau klik Sempurnakan dengan AI. Foto kegiatan ditambahkan di bagian Dokumentasi Kegiatan di bawah (4 foto pertama masuk ke tabel)."></textarea>
+        <textarea id="p2k_rangkuman" rows="7" maxlength="1000" placeholder="Tulis ringkasan jalannya kegiatan, atau klik Sempurnakan Uraian. Foto kegiatan ditambahkan di bagian Dokumentasi Kegiatan di bawah (4 foto pertama masuk ke tabel)."></textarea>
         <div class="hint" id="p2k_rkCount" style="text-align:right;margin-top:4px;">0 / 1000 karakter</div>
       </div>
     </div></div>
@@ -515,7 +515,7 @@
       <div class="field">
         <label>Uraian Pelaksanaan / Realisasi Kegiatan</label>
         <div style="margin-bottom:8px;">
-          <button type="button" class="btn-ai-generate" id="btnGenB">&#10024; Sempurnakan dengan AI (opsional)</button>
+          <button type="button" class="btn-ai-generate" id="btnGenB">&#10024; Sempurnakan Uraian (opsional)</button>
           <span class="ai-gen-status" id="bAiStatus"></span>
         </div>
         <textarea id="f_bUraian" rows="6" placeholder="Terisi otomatis begitu RHK &amp; rencana aksi dipilih pada langkah 2. Silakan edit atau tambahkan sesuai kebutuhan."></textarea>
@@ -590,8 +590,8 @@
 <!-- ===================== MODAL: GAMBAR TANDA TANGAN LANGSUNG ===================== -->
 <div class="ai-pop-overlay" id="aiPopOverlay" role="dialog" aria-modal="true" aria-labelledby="aiPopTitle">
   <div class="ai-pop-modal">
-    <h3 id="aiPopTitle">&#10024; Sempurnakan dengan AI</h3>
-    <p class="ai-pop-sub" id="aiPopSub">Isi fakta kegiatan Anda. AI akan merangkainya menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.</p>
+    <h3 id="aiPopTitle">&#10024; Sempurnakan Uraian</h3>
+    <p class="ai-pop-sub" id="aiPopSub">Isi fakta kegiatan Anda. Isian akan dirangkai menjadi uraian (Bagian B) dan hasil yang dicapai (Bagian C). Kosongkan yang tidak perlu.</p>
     <div class="ai-pop-ctx" id="aiPopCtx"></div>
     <div class="ai-pop-warn" id="aiPopWarn">Jangan isi nama atau NIK KPM. Cukup jumlah dan wilayah.</div>
     <div id="aiPopFields"></div>
@@ -664,7 +664,7 @@
       <div class="pricing-card">
         <div class="price">Rp 15.000</div>
         <div class="features">
-          <span>10x Penggunaan "Sempurnakan AI"</span>
+          <span>10x Penggunaan "Sempurnakan Uraian"</span>
           <span>Prioritas Support via WhatsApp</span>
           <span>Akses Selamanya (Tidak Kadaluarsa)</span>
         </div>
