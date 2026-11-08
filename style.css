@@ -840,3 +840,12 @@ body.role-locked .tema-picker{display:flex;}
 .bayar-alt{font-size:11px; color:#6b7280; text-align:center; margin:10px 0 0; line-height:1.45;}
 .bayar-alt a{color:#1d4ed8; font-weight:700;}
 @media print{ #bayarOverlay, #trialAiOverlay{display:none !important;} }
+
+
+/* Pilihan di gerbang login: tombol jelas, kontras tinggi di latar gelap */
+.gerbang-pilih{margin:18px 0 6px;text-align:center;}
+.gerbang-tanya{margin:0 0 8px;font-size:13px;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 1px 2px rgba(0,0,0,.5);}
+.btn-gerbang-alt{display:flex;align-items:center;justify-content:center;width:100%;margin:0 0 8px;padding:11px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.75);background:rgba(15,23,42,.55);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.4);}
+.btn-gerbang-alt:hover,.btn-gerbang-alt:focus-visible{background:rgba(255,255,255,.18);outline:none;}
+.btn-gerbang-utama{background:#fff;color:#7f1d1d;border-color:#fff;text-shadow:none;}
+.btn-gerbang-utama:hover,.btn-gerbang-utama:focus-visible{background:#fde68a;color:#5b1313;}

@@ -90,17 +90,18 @@
         <input type="text" id="loginToken" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; text-transform:uppercase;">
       </div>
       <button class="btn btn-gold" id="btnLoginMasuk" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
-      <p style="text-align:center; margin-top:16px; font-size:12px;">
-        Belum punya token? <a href="javascript:void(0)" onclick="tampilkanFormDaftar()" style="color:#7f1d1d; font-weight:600;">Daftar di sini</a><br>
-        Sudah pernah daftar? <a href="javascript:void(0)" onclick="tampilkanFormTgGerbang()" style="color:#fde68a; font-weight:600;">📲 Hubungkan Telegram</a><br>
-      </p>
+      <div class="gerbang-pilih">
+        <p class="gerbang-tanya">Belum punya akun?</p>
+        <button type="button" class="btn-gerbang-alt btn-gerbang-utama" onclick="tampilkanFormDaftar()">📝 Daftar Akun Baru (gratis 24 jam)</button>
+        <button type="button" class="btn-gerbang-alt" onclick="tampilkanFormTgGerbang()">📲 Sudah daftar? Hubungkan Telegram</button>
+      </div>
       <button type="button" class="btn btn-gold" id="btnBayarGerbang" style="width:100%; justify-content:center; margin-top:4px;" onclick="bukaHarga()">☕ Traktir Ngopi (tanpa login)</button>
       <p style="text-align:center; margin:8px 0 0; font-size:11px; color:rgba(255,255,255,.75);">Belum bisa masuk atau Telegram bermasalah? Traktir Ngopi langsung di sini, admin aktifkan akunmu.</p>
     </div>
 
     <!-- FORM 2: PENDAFTARAN (Nama + NIP + WA/Telegram) -->
     <div id="registerForm" style="display:none; text-align:left;">
-      <p style="font-size:12px; color:#4b5563; margin:0 0 15px;">Isi data berikut. Akun baru langsung mendapat <b>trial gratis 24 jam</b>; token dikirim otomatis lewat <b>Telegram</b>, tanpa menunggu admin.</p>
+      <p style="font-size:13px; color:rgba(255,255,255,.92); text-shadow:0 1px 2px rgba(0,0,0,.45); margin:0 0 15px;">Isi data berikut. Akun baru langsung mendapat <b>trial gratis 24 jam</b>; token dikirim otomatis lewat <b>Telegram</b>, tanpa menunggu admin.</p>
       <div style="margin-bottom:10px;">
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Nama Lengkap (dengan gelar, opsional)</label>
         <input type="text" id="regNama" placeholder="cth. Rizky Pratama, S.Tr.Sos" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
@@ -121,10 +122,11 @@
       <label class="consent-row"><input type="checkbox" id="regSetuju"><span>Saya setuju menerima notifikasi (token, info akun, dan pengingat masa aktif) lewat Telegram atau email. *</span></label>
       <p class="tg-note">📲 Setelah menekan Daftar, hubungkan <b>Telegram</b> (satu ketukan). Begitu terhubung, akun aktif dan token langsung dikirim ke sana.</p>
       <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesRegistrasi()">Daftar</button>
-      <p style="text-align:center; margin-top:16px; font-size:12px;">
-        Sudah punya token? <a href="javascript:void(0)" onclick="tampilkanFormLogin()" style="color:#7f1d1d; font-weight:600;">Masuk di sini</a><br>
-        <a href="javascript:void(0)" onclick="bukaHarga()" style="color:#fde68a; font-weight:700; display:inline-block; margin-top:8px;">☕ Lihat Paket dan Harga</a>
-      </p>
+      <div class="gerbang-pilih">
+        <p class="gerbang-tanya">Sudah punya token?</p>
+        <button type="button" class="btn-gerbang-alt btn-gerbang-utama" onclick="tampilkanFormLogin()">🔑 Masuk dengan Token</button>
+        <button type="button" class="btn-gerbang-alt" onclick="bukaHarga()">☕ Lihat Paket dan Harga</button>
+      </div>
     </div>
 
     <!-- Pesan setelah pendaftaran berhasil -->
