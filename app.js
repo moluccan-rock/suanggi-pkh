@@ -376,6 +376,12 @@ function prosesRegistrasi(){
     errBox.style.display = 'block';
     return;
   }
+  nip = nip.replace(/\s+/g, '');
+  if(!/^\d{18}$/.test(nip)){
+    errBox.textContent = 'NIP harus tepat 18 angka (tanpa spasi atau tanda baca). Sekarang terisi ' + nip.length + ' karakter.';
+    errBox.style.display = 'block';
+    return;
+  }
 
   panggilAPI('daftarUser', { nama: nama, nip: nip, noWa: hp, jumlahHariDiminta: 1, email: email, setuju: true }).then(function(res){
       if(res.status === 'success'){
