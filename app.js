@@ -3098,6 +3098,7 @@ function bukaBayar(dariPerpanjangan, nipManual, hariAwal){
       var b1 = document.createElement('b'); b1.textContent = p.hari + ' hari';
       var s1 = document.createElement('span'); s1.textContent = rupiahJS_(p.nominal);
       tb.appendChild(b1); tb.appendChild(s1);
+      if(p.hargaNormal){ var s2 = document.createElement('span'); s2.className = 'bayar-hemat'; s2.textContent = 'Hemat ' + rupiahJS_(p.hargaNormal - p.harga) + ' (normal ' + rupiahJS_(p.hargaNormal) + ')'; tb.appendChild(s2); }
       tb.addEventListener('click', function(){ pilihPaketBayar_(p.hari); });
       wadah.appendChild(tb);
     });
@@ -3127,7 +3128,7 @@ function perbaruiTombolKirim_(){
   if(syarat){
     syarat.style.display = siap ? 'none' : '';
     syarat.textContent = !bayarPilih && !bayarFotoData ? 'Pilih paket dan lampirkan foto bukti dulu, lalu tombol ini aktif.'
-      : (!bayarPilih ? 'Pilih paket (7 atau 30 hari) dulu.' : 'Lampirkan foto bukti transfer dulu.');
+      : (!bayarPilih ? 'Pilih paket (7, 30, atau 90 hari) dulu.' : 'Lampirkan foto bukti transfer dulu.');
   }
 }
 function resetFotoBukti_(){

@@ -849,3 +849,9 @@ body.role-locked .tema-picker{display:flex;}
 .btn-gerbang-alt:hover,.btn-gerbang-alt:focus-visible{background:rgba(255,255,255,.18);outline:none;}
 .btn-gerbang-utama{background:#fff;color:#7f1d1d;border-color:#fff;text-shadow:none;}
 .btn-gerbang-utama:hover,.btn-gerbang-utama:focus-visible{background:#fde68a;color:#5b1313;}
+
+/* Paket 90 hari */
+.harga-item-lebar{grid-column:1 / -1; margin-top:4px;}
+.harga-coret{color:#9ca3af; font-weight:500; font-size:.8em; margin-right:4px;}
+.bayar-hemat{display:block; margin-top:2px; color:#047857; font-weight:700; font-size:10.5px;}
+.bayar-opsi[data-hari="90"]{grid-column:1 / -1;}

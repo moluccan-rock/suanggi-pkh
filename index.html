@@ -118,7 +118,7 @@
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Email (opsional — pesan cadangan jika Telegram bermasalah)</label>
         <input type="email" id="regEmail" placeholder="cth. nama@gmail.com" autocomplete="email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
       </div>
-      <div class="trial-info">🎁 <b>Coba gratis 24 jam</b> — waktu dihitung sejak login pertama. Semua fitur bisa dipakai kecuali Sempurnakan Uraian. Suka? Lanjut traktir ngopi: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</div>
+      <div class="trial-info">🎁 <b>Coba gratis 24 jam</b> — waktu dihitung sejak login pertama. Semua fitur bisa dipakai kecuali Sempurnakan Uraian. Suka? Lanjut traktir ngopi: <b>Rp7.000 / 7 hari</b>, <b>Rp25.000 / 30 hari</b>, atau <b>Rp65.000 / 90 hari</b>.</div>
       <label class="consent-row"><input type="checkbox" id="regSetuju"><span>Saya setuju menerima notifikasi (token, info akun, dan pengingat masa aktif) lewat Telegram atau email. *</span></label>
       <p class="tg-note">📲 Setelah menekan Daftar, hubungkan <b>Telegram</b> (satu ketukan). Begitu terhubung, akun aktif dan token langsung dikirim ke sana.</p>
       <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="prosesRegistrasi()">Daftar</button>
@@ -211,6 +211,12 @@
         <div class="harga-rp">Rp25.000</div>
         <div class="harga-ket">Setara Rp833 per hari</div>
       </button>
+      <button type="button" class="harga-item harga-item-lebar" data-hari="90" onclick="pilihHarga(90)">
+        <div class="harga-tag">Hemat</div>
+        <div class="harga-hari">90 hari (3 bulan)</div>
+        <div class="harga-rp"><s class="harga-coret">Rp75.000</s> Rp65.000</div>
+        <div class="harga-ket">Hemat Rp10.000 dibanding perpanjang bulanan. Setara Rp722 per hari</div>
+      </button>
     </div>
     <div id="hargaNipBox" style="display:none; margin:0 0 12px;">
       <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:#4b5563;">NIP kamu (untuk lanjut traktir)</label>
@@ -268,7 +274,7 @@
     <h2 id="trialAiJudul">🔒 Sempurnakan Uraian</h2>
     <p class="harga-sub" id="trialAiSub">Fitur ini terbuka setelah traktir ngopi ☕ Selama trial, uraian laporan tetap bisa diketik manual dan PDF tetap bisa diunduh.</p>
     <ul class="harga-list">
-      <li>Paket: <b>Rp7.000 / 7 hari</b> atau <b>Rp25.000 / 30 hari</b>.</li>
+      <li>Paket: <b>Rp7.000 / 7 hari</b>, <b>Rp25.000 / 30 hari</b>, atau <b>Rp65.000 / 90 hari</b>.</li>
       <li>Traktir lewat tombol <b>Traktir Ngopi</b> di aplikasi, atau ketik <b>/beli</b> di bot Telegram.</li>
       <li>Sudah dikonfirmasi admin? Keluar lalu masuk lagi supaya fitur terbuka.</li>
     </ul>
