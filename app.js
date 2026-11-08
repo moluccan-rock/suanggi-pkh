@@ -617,6 +617,7 @@ async function callClaudeAI_withCredit(prompt){
     // saat sukses, dan {success:false, message:...} saat gagal (lihat Kode.gs).
     panggilAPI('sempurnakanDenganAI', { nip: currentUser.nip, token: currentUser.token, prompt: prompt }).then(function(res){
       if(res && typeof res === 'object' && res.success === false){
+        if(res.perluTraktir){ aiPopTutup(); bukaTrialAi(true); }
         reject(new Error(res.message || 'Permintaan AI gagal.'));
       } else {
         resolve(res);
@@ -3032,8 +3033,17 @@ function aiTerkunciTrial_(){
   if(currentUser && currentUser.trial){ bukaTrialAi(); return true; }
   return false;
 }
-function bukaTrialAi(){
-  var bt = document.getElementById('btnBayarTrial'); if(bt) bt.style.display = (currentUser && currentUser.bayarAktif) ? '' : 'none';
+var TRIAL_AI_JUDUL = null, TRIAL_AI_SUB = null;
+function bukaTrialAi(tidakAktif){
+  var j = document.getElementById('trialAiJudul'), sb = document.getElementById('trialAiSub');
+  if(TRIAL_AI_JUDUL === null && j){ TRIAL_AI_JUDUL = j.textContent; TRIAL_AI_SUB = sb.textContent; }
+  if(j && sb){
+    if(tidakAktif === true){
+      j.textContent = '\u2615 Traktir Sopi lah';
+      sb.textContent = 'Akses kamu sedang tidak aktif atau sudah berakhir, jadi Sempurnakan Uraian belum bisa dipakai. Traktir Ngopi dulu ya, hari akses langsung ditambah setelah disetujui admin.';
+    } else { j.textContent = TRIAL_AI_JUDUL; sb.textContent = TRIAL_AI_SUB; }
+  }
+  var bt = document.getElementById('btnBayarTrial'); if(bt) bt.style.display = (tidakAktif === true || (currentUser && currentUser.bayarAktif)) ? '' : 'none';
   var o = document.getElementById('trialAiOverlay'); if(o) o.style.display = 'flex';
 }
 function tutupTrialAi(){ var o = document.getElementById('trialAiOverlay'); if(o) o.style.display = 'none'; }
