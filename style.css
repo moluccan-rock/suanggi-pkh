@@ -855,3 +855,17 @@ body.role-locked .tema-picker{display:flex;}
 .harga-coret{color:#9ca3af; font-weight:500; font-size:.8em; margin-right:4px;}
 .bayar-hemat{display:block; margin-top:2px; color:#047857; font-weight:700; font-size:10.5px;}
 .bayar-opsi[data-hari="90"]{grid-column:1 / -1;}
+
+/* ---------- Kotak ukur paginasi (tersembunyi, meniru lembar .paper) ---------- */
+.paper.measure-box{position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;min-height:0;padding:0;margin:0;box-shadow:none;}
+/* Potongan paragraf yang berlanjut ke halaman berikutnya: baris terakhir ikut rata kanan-kiri */
+.p-sec p.p-split{text-align-last:justify;}
+/* Tingkat kerapatan (dipilih otomatis agar dokumen padat & tanda tangan tidak sendirian) */
+.paper.padat1{line-height:1.55;}
+.paper.padat1 .p-sec p{margin-bottom:6px;}
+.paper.padat1 .p-sec h3{margin-top:10px;margin-bottom:4px;}
+.paper.padat1 .sign-block{margin-top:24px;}
+.paper.padat2{line-height:1.48;}
+.paper.padat2 .p-sec p{margin-bottom:4px;}
+.paper.padat2 .p-sec h3{margin-top:8px;margin-bottom:3px;}
+.paper.padat2 .sign-block{margin-top:18px;}

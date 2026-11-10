@@ -2382,15 +2382,18 @@ const MM_TO_PX = 96 / 25.4;
 const PAPER_PAD_MM = 18;
 const PAPER_CONTENT_W_PX = (210 - PAPER_PAD_MM * 2) * MM_TO_PX;
 const PAPER_CONTENT_H_PX = (297 - PAPER_PAD_MM * 2) * MM_TO_PX;
+let MEASURE_LEVEL = 0; // tingkat kerapatan teks yang sedang diukur (0 = normal, 1-2 = lebih padat)
 function getMeasureBox(){
 let m = document.getElementById('measureBox');
 if(!m){
 m = document.createElement('div');
 m.id = 'measureBox';
-m.className = 'measure-box p-sec';
 m.style.width = PAPER_CONTENT_W_PX + 'px';
 document.body.appendChild(m);
 }
+// Kotak ukur meniru lembar .paper (huruf, spasi, rata kanan-kiri) supaya tinggi yang diukur
+// sama dengan yang tampil di kertas; level kerapatan ikut menyesuaikan.
+m.className = 'measure-box paper p-sec' + (MEASURE_LEVEL ? ' padat' + MEASURE_LEVEL : '');
 return m;
 }
 function measureHeight(html){
@@ -2497,26 +2500,62 @@ return blocks;
 /* Susun blok-blok yang sudah diukur tingginya ke beberapa "halaman" (array of array),
 tanpa pernah memotong isi: begitu satu halaman penuh sesuai margin kertas A4,
 sisanya otomatis berpindah ke halaman berikutnya. */
+/* Memecah paragraf panjang agar sisa ruang halaman terisi penuh. Hanya untuk blok yang berakhir
+dengan satu <p>teks</p> (boleh didahului judul). Syarat: sisa ruang memuat minimal 2 baris
+paragraf, dan sisa paragraf di halaman berikut minimal 2 baris (tidak ada baris yatim/janda). */
+function pecahParagraf_(html, ruang){
+const mm = /^([\s\S]*?)<p>([^<]+)<\/p>$/.exec(html);
+if(!mm) return null;
+const prefix = mm[1], teks = mm[2];
+const kata = teks.split(' ');
+if(kata.length < 8) return null;
+const prefixH = prefix ? measureHeight(prefix) : 0;
+const baris = Math.max(10, measureHeight('<p>x</p>') - 8);   // tinggi satu baris
+const bagian = (k)=> prefix + '<p class="p-split">' + kata.slice(0, k).join(' ') + '</p>';
+const sisaH = (k)=> measureHeight('<p>' + kata.slice(k).join(' ') + '</p>');
+let lo = 1, hi = kata.length - 1, best = 0;
+while(lo <= hi){
+const mid = (lo + hi) >> 1;
+if(measureHeight(bagian(mid)) <= ruang){ best = mid; lo = mid + 1; } else { hi = mid - 1; }
+}
+if(!best) return null;
+while(best > 1 && sisaH(best) < 2 * baris + 8) best--;
+if(sisaH(best) < 2 * baris + 8) return null;
+if(measureHeight(bagian(best)) - prefixH < 2 * baris + 8) return null;
+if(measureHeight(bagian(best)) > ruang) return null;
+return { depan: bagian(best), sisa: '<p>' + kata.slice(best).join(' ') + '</p>' };
+}
 function paginateFlowBlocks(blocksHtml, firstCap, otherCap){
 const pages = [];
 let current = [];
 let currentHeight = 0;
 let cap = firstCap;
-blocksHtml.forEach(html=>{
+const antre = blocksHtml.slice();
+const halamanBaru = ()=>{ pages.push(current); current = []; currentHeight = 0; cap = otherCap; };
+while(antre.length){
+const html = antre.shift();
 if(html === '__PB__'){
-if(current.length){ pages.push(current); current = []; currentHeight = 0; cap = otherCap; }
-return;
+if(current.length) halamanBaru();
+continue;
 }
 const h = measureHeight(html);
-if(current.length && currentHeight + h > cap){
-pages.push(current);
-current = [];
-currentHeight = 0;
-cap = otherCap;
+let pc = null;
+if(currentHeight + h > cap){
+pc = pecahParagraf_(html, cap - currentHeight);
+if(!pc && current.length){
+halamanBaru();
+if(h > cap) pc = pecahParagraf_(html, cap);   // blok lebih tinggi dari satu halaman: pecah di halaman baru
+}
+}
+if(pc){
+current.push(pc.depan);
+halamanBaru();
+antre.unshift(pc.sisa);
+continue;
 }
 current.push(html);
 currentHeight += h;
-});
+}
 if(current.length) pages.push(current);
 return pages;
 }
@@ -2571,28 +2610,43 @@ const signHtml = `
 </div></div>
 `;
 const flowBlocks = buildFlowBlocks();
+// Tanda tangan DIGABUNG dengan blok terakhir (Penutup) sebagai satu kesatuan: keduanya selalu
+// berada di halaman yang sama, jadi tanda tangan tidak pernah berdiri sendiri di lembar kosong.
+if(flowBlocks.length && flowBlocks[flowBlocks.length - 1] !== '__PB__') flowBlocks[flowBlocks.length - 1] += signHtml;
+else flowBlocks.push(signHtml);
+const susunKonten = (level)=>{
+MEASURE_LEVEL = level;
 const headerH = measureHeight(headerHtml);
 const contHeaderH = measureHeight(contHeaderHtml);
-const signH = measureHeight(signHtml);
 const firstCap = PAPER_CONTENT_H_PX - headerH;
 const contCap = PAPER_CONTENT_H_PX - contHeaderH;
-let contentPages = paginateFlowBlocks(flowBlocks, firstCap, contCap);
-if(!contentPages.length) contentPages = [[]];
-// Coba tempelkan blok tanda tangan pada halaman konten terakhir jika masih muat;
-// jika tidak, buat lembar baru khusus tanda tangan agar tidak terpotong.
-const lastCap = contentPages.length === 1 ? firstCap : contCap;
-const lastPageHeight = contentPages[contentPages.length - 1]
-.reduce((sum, html)=> sum + measureHeight(html), 0);
-const signOnNewPage = (lastPageHeight + signH) > lastCap;
+let cp = paginateFlowBlocks(flowBlocks, firstCap, contCap);
+if(!cp.length) cp = [[]];
+const lastCap = cp.length === 1 ? firstCap : contCap;
+const terakhir = cp[cp.length - 1].reduce((sum, html)=> sum + measureHeight(html), 0);
+return { cp: cp, isi: terakhir / lastCap };
+};
+// Coba tingkat normal dulu. Bila halaman terakhir masih sangat longgar (isi < 50%) padahal ada
+// lebih dari satu halaman, rapatkan sedikit jarak antarparagraf supaya dokumen lebih padat.
+let level = 0;
+let hasil = susunKonten(0);
+if(hasil.cp.length > 1 && hasil.isi < 0.5){
+let terbaik = { level: 0, hasil: hasil };
+for(let lv = 1; lv <= 2; lv++){
+const r = susunKonten(lv);
+if(r.cp.length < terbaik.hasil.cp.length){ terbaik = { level: lv, hasil: r }; break; }
+}
+level = terbaik.level; hasil = terbaik.hasil;
+}
+MEASURE_LEVEL = level;
+const contentPages = hasil.cp;
 const pages = [];
 contentPages.forEach((blocksOnPage, idx)=>{
 const isFirst = idx === 0;
-const isLastContentPage = idx === contentPages.length - 1;
-let html = (isFirst ? headerHtml : contHeaderHtml) + '<div class="p-sec">' + blocksOnPage.join('') + '</div>';
-if(isLastContentPage && !signOnNewPage) html += signHtml;
+const html = (isFirst ? headerHtml : contHeaderHtml) + '<div class="p-sec">' + blocksOnPage.join('') + '</div>';
 pages.push(html);
 });
-if(signOnNewPage) pages.push(contHeaderHtml + signHtml);
+pages.padat = level;
 const DOK_PER_PAGE = 2; // foto 5.48in x 3.5in per halaman A4 (margin 18mm)
 const LAMP_PER_PAGE = 1; // 1 halaman sumber (gambar/halaman PDF) per lembar A4 agar isinya terpampang penuh & terbaca
 const dokList = modeP2k ? state.dok.slice(4) : state.dok;
@@ -2628,7 +2682,8 @@ ${chunk.map(l=>`<figure><img src="${l.url}"></figure>`).join('')}
 return pages;
 }
 function paperPagesToHtml(pages){
-return pages.map((content,i)=>`<div class="paper${i>0?' page-break':''}">${content}</div>`).join('');
+const lv = pages.padat ? ' padat' + pages.padat : '';
+return pages.map((content,i)=>`<div class="paper${i>0?' page-break':''}${lv}">${content}</div>`).join('');
 }
 function renderPreview(){
 sinkronBulanTahun();
@@ -2658,15 +2713,14 @@ window.addEventListener('resize', fitPreviewZoom);
 /* =================== SIMPAN / EXPORT KE PDF =================== */
 function namaFilePdf(){
 sinkronBulanTahun();
-// Format nama file: "RHK <no>_<Rencana Aksi yang dipilih>_<Bulan laporan>_<Tahun>.pdf"
+// Format nama file: "RHK <no>_<Nama User>_<Bulan laporan>_<Tahun>.pdf"
 const item = getSelectedRhk();
 const rhkLabel = item ? ('RHK ' + item.no) : 'RHK';
-const aksiText = getSelectedAksiText() || 'Rencana Aksi';
-const bersih = (t)=> String(t||'').replace(/[^a-zA-Z0-9_\-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+const bersih = (t)=> String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_\-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+const nama = bersih(state.nama || (currentUser && currentUser.nama) || '') || 'Pegawai';
 const ekor = bersih(state.bulan) + '_' + bersih(state.tahun);
-let depan = bersih(rhkLabel + '_' + aksiText);
-// Rencana aksi bisa berupa kalimat panjang: yang dipotong HANYA bagian depan,
-// supaya bulan & tahun selalu utuh dan nama tetap aman di semua sistem operasi.
+let depan = bersih(rhkLabel) + '_' + nama;
+// Yang dipotong HANYA nama (bila sangat panjang), supaya RHK, bulan & tahun selalu utuh.
 const maks = 150 - ekor.length - 1;
 if(depan.length > maks) depan = depan.slice(0, maks).replace(/_+$/g,'');
 return depan + '_' + ekor + '.pdf';
