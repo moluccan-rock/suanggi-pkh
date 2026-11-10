@@ -2822,6 +2822,7 @@ const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
 const paperEls = Array.from(exportBox.querySelectorAll('.paper'));
 if(!window.html2canvas || !jsPDFCtor || !paperEls.length) return false;
 const pdf = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+try{ pdf.setProperties({ title: namaFilePdf().replace(/\.pdf$/i,'').replace(/_/g,' '), subject: 'Laporan Bulanan PKH ' + (state.bulan||'') + ' ' + (state.tahun||''), author: state.nama || '', creator: 'e-Suanggi PKH' }); }catch(e){}
 for(let i=0; i<paperEls.length; i++){
 const canvas = await window.html2canvas(paperEls[i], {
 scale: 2,
