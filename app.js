@@ -1384,7 +1384,8 @@ if(dropDokLabel) dropDokLabel.textContent = files.length>1 ? `Memproses foto ${i
 await jedaUI();
 const url = await fotoKeDataUrl(file, DOK_MAX_DIM, 0.88);
 const nama = (file.name || 'foto').replace(/\.(heic|heif)$/i, '.jpg');
-state.dok.push({name:nama, url});
+const dim = await ukurFoto_(url);
+state.dok.push({name:nama, url, w:dim.w, h:dim.h});
 }catch(err){
 console.error('Gagal memproses foto dokumentasi:', file && file.name, err, err && err.asli);
 gagal.push({nama:(file && file.name) || 'file tidak dikenal', kode: err && err.kode, pesan: (err && err.kode) ? err.message : ('Terjadi kesalahan: ' + ((err && err.message) || err))});
@@ -1513,6 +1514,67 @@ const P2K2_INGAT_KEY = 'suanggi_p2k2_ingat';
 function isP2K2Aksi(item, aksiText){
   return !!item && /p2k2/i.test(String(item.rhk || '') + ' ' + String(item.indikator || '')) &&
     /^melaksanakan\s+pertemuan/i.test(String(aksiText || '').trim());
+}
+/* Ukuran asli foto (piksel). Disimpan di state.dok[i].w/h saat unggah; bila belum ada, diukur sekali lalu pratinjau digambar ulang. */
+const DOK_DIM_CACHE = {};
+function ukurFoto_(url){
+  return new Promise(function(resolve){
+    var im = new Image();
+    im.onload = function(){ resolve({ w: im.naturalWidth || 4, h: im.naturalHeight || 3 }); };
+    im.onerror = function(){ resolve({ w: 4, h: 3 }); };
+    im.src = url;
+  });
+}
+function dimFoto_(d){
+  if(d.w > 0 && d.h > 0) return { w: d.w, h: d.h };
+  var c = DOK_DIM_CACHE[d.url];
+  if(c) return c;
+  DOK_DIM_CACHE[d.url] = { w: 4, h: 3 }; // sementara 4:3, diganti ukuran asli begitu terbaca
+  ukurFoto_(d.url).then(function(dim){ d.w = dim.w; d.h = dim.h; DOK_DIM_CACHE[d.url] = dim; try{ renderPreview(); }catch(e){} });
+  return DOK_DIM_CACHE[d.url];
+}
+/*
+ * Tata letak foto dokumentasi "baris rapat" (RHK Penyebaran Berita Baik, 6 foto per lembar).
+ * Urutan foto dipertahankan. Foto dibagi ke baris (1-3 foto per baris); tiap baris diberi tinggi
+ * yang membuat foto-fotonya memenuhi lebar kertas, jadi tidak ada ruang putih di dalam kotak dan
+ * foto SELALU utuh (tidak dipotong). Dari semua cara membagi baris dipilih yang paling penuh mengisi lembar;
+ * bila terlalu tinggi, seluruhnya diperkecil seragam.
+ */
+function susunDokBaris_(daftar, W, H, gap){
+  const n = daftar.length;
+  const rasio = daftar.map(function(d){ var m = dimFoto_(d); return m.w / m.h; });
+  let terbaik = null;
+  function coba(awal, baris){
+    if(awal === n){
+      let total = gap * (baris.length - 1), tunggal = 0, minN = 9, maxN = 0;
+      const hasil = baris.map(function(b){
+        const S = b.reduce(function(a, i){ return a + rasio[i]; }, 0);
+        const h = (W - gap * (b.length - 1)) / S;
+        total += h; if(b.length === 1) tunggal++; minN = Math.min(minN, b.length); maxN = Math.max(maxN, b.length);
+        return { idx: b, h: h };
+      });
+      // prioritas: foto memenuhi LEBAR kertas (tanpa putih di sisi), lalu memenuhi tinggi lembar
+      const sk = total > H ? H / total : 1;
+      const eff = 0.65 * sk + 0.35 * Math.min(1, total * sk / H);
+      const skor = eff - 0.03 * tunggal - 0.1 * (maxN - minN); // rapi: jumlah foto per baris sebaiknya seragam
+      if(!terbaik || skor > terbaik.skor) terbaik = { skor: skor, baris: hasil, total: total };
+      return;
+    }
+    for(let k = 1; k <= 3 && awal + k <= n; k++) coba(awal + k, baris.concat([Array.from({length: k}, function(_, j){ return awal + j; })]));
+  }
+  coba(0, []);
+  const sk = terbaik.total > H ? H / terbaik.total : 1;
+  return terbaik.baris.map(function(b){
+    return { h: b.h * sk, items: b.idx.map(function(i){ return { d: daftar[i], w: b.h * sk * rasio[i], h: b.h * sk }; }) };
+  });
+}
+function dokBarisHtml_(daftar){
+  const baris = susunDokBaris_(daftar, 174, 250, 3);
+  return '<div class="doc-grid-print dok6">' + baris.map(function(r){
+    return '<div class="dok6-baris" style="height:' + r.h.toFixed(2) + 'mm">' + r.items.map(function(it){
+      return '<figure style="width:' + it.w.toFixed(2) + 'mm;height:' + it.h.toFixed(2) + 'mm"><img src="' + it.d.url + '"></figure>';
+    }).join('') + '</div>';
+  }).join('') + '</div>';
 }
 function isBeritaBaik(){ var it = getSelectedRhk(); return !!it && /penyebaran\s+berita\s+baik/i.test(String(it.rhk || '')); }
 function isP2K2(){ return isP2K2Aksi(getSelectedRhk(), getSelectedAksiText()); }
@@ -2649,9 +2711,9 @@ pages.push(html);
 });
 pages.padat = level;
 // RHK "Penyebaran Berita Baik Kementerian Sosial" (RHK 9 / nomor lain di jabatan tertentu) butuh banyak foto bukti:
-// 4 foto per lembar A4 (2x2, kotak potret, foto ditampilkan utuh). RHK lain tetap 2 foto per lembar.
+// 6 foto per lembar A4, tata letak baris rapat (foto utuh, tanpa putih di sisi). RHK lain tetap 2 foto per lembar.
 const modeBeritaBaik = isBeritaBaik();
-const DOK_PER_PAGE = modeBeritaBaik ? 4 : 2; // RHK lain: foto 5.48in x 3.5in per halaman A4 (margin 18mm)
+const DOK_PER_PAGE = modeBeritaBaik ? 6 : 2; // RHK lain: foto 5.48in x 3.5in per halaman A4 (margin 18mm)
 const LAMP_PER_PAGE = 1; // 1 halaman sumber (gambar/halaman PDF) per lembar A4 agar isinya terpampang penuh & terbaca
 const dokList = modeP2k ? state.dok.slice(4) : state.dok;
 if(dokList.length){
@@ -2660,9 +2722,9 @@ for(let i=0, p=1; i<dokList.length; i+=DOK_PER_PAGE, p++){
 const chunk = dokList.slice(i, i+DOK_PER_PAGE);
 pages.push(`
 <div class="paper-page-title">Dokumentasi Kegiatan${totalDokPages>1?` (${p}/${totalDokPages})`:''}</div>
-<div class="doc-grid-print${modeBeritaBaik ? ' dok4' : ''}">
+${modeBeritaBaik ? dokBarisHtml_(chunk) : `<div class="doc-grid-print">
 ${chunk.map(d=>`<figure><div class="doc-photo-frame"><img src="${d.url}"></div></figure>`).join('')}
-</div>
+</div>`}
 `);
 }
 }
