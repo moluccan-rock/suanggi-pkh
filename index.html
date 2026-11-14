@@ -241,6 +241,11 @@
     <button type="button" class="harga-x" onclick="tutupBayar()" aria-label="Tutup">×</button>
     <h2 id="bayarJudul">☕ Traktir Ngopi</h2>
     <p class="harga-sub" id="bayarSub">Memuat...</p>
+    <div id="bayarHpBox" style="display:none; margin:0 0 12px;">
+      <input type="tel" id="bayarHp" inputmode="tel" autocomplete="tel" placeholder="No. HP terdaftar, cth. 08123456789" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();lanjutBayarHp_();}">
+      <div id="bayarHpErr" style="color:#b91c1c; font-size:12px; min-height:16px; margin:6px 0 8px;"></div>
+      <button type="button" class="btn btn-gold" style="width:100%; justify-content:center;" onclick="lanjutBayarHp_()">Lanjut</button>
+    </div>
     <div id="bayarIsi" style="display:none;">
       <div class="bayar-langkah">1. Pilih paket</div>
       <div class="bayar-paket" id="bayarPaket"></div>

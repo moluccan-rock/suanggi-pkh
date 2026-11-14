@@ -3136,13 +3136,45 @@ function bukaBayar(dariPerpanjangan, nipManual, hariAwal){
   else if(dariPerpanjangan){ nip = document.getElementById('perpanjanganNip').value; }
   else if(currentUser){ nip = currentUser.nip; token = currentUser.token || ''; }
   if(!nip) return;
-  bayarKonteks = { nip: nip, token: token }; bayarPilih = 0; bayarData = null;
+  bayarKonteks = { nip: nip, token: token, hp: '' }; bayarPilih = 0; bayarData = null; bayarHariAwal = hariAwal;
   resetFotoBukti_();
   var bb = document.getElementById('bayarBtn'); if(bb) bb.style.display = '';
   document.getElementById('bayarOverlay').style.display = 'flex';
   document.getElementById('bayarIsi').style.display = 'none';
+  var sub = document.getElementById('bayarSub');
+  var hpBox = document.getElementById('bayarHpBox'), hpErr = document.getElementById('bayarHpErr');
+  if(hpErr) hpErr.textContent = '';
+  if(!token){
+    // Tanpa login: demi keamanan, wajib memasukkan No. HP yang didaftarkan (harus cocok dengan data pendaftaran)
+    sub.textContent = 'Untuk keamanan, masukkan No. HP yang kamu daftarkan di e-Suanggi.';
+    if(hpBox) hpBox.style.display = 'block';
+    var hi = document.getElementById('bayarHp'); if(hi){ hi.value = ''; setTimeout(function(){ try{ hi.focus(); }catch(e){} }, 50); }
+    return;
+  }
+  if(hpBox) hpBox.style.display = 'none';
+  muatInfoBayar_();
+}
+var bayarHariAwal = 0;
+function lanjutBayarHp_(){
+  var hi = document.getElementById('bayarHp'), hpErr = document.getElementById('bayarHpErr');
+  var hp = (hi && hi.value || '').replace(/[^\d+]/g, '');
+  if(hp.replace(/\D/g, '').length < 9){ if(hpErr) hpErr.textContent = 'Isi No. HP dengan benar (minimal 9 angka).'; return; }
+  if(!bayarKonteks) return;
+  bayarKonteks.hp = hp;
+  if(hpErr) hpErr.textContent = '';
+  muatInfoBayar_();
+}
+function muatInfoBayar_(){
+  var hariAwal = bayarHariAwal;
   var sub = document.getElementById('bayarSub'); sub.textContent = 'Memuat...';
+  var hpBox = document.getElementById('bayarHpBox');
   panggilAPI('infoBayar', bayarKonteks).then(function(r){
+    if(r.status !== 'success' && hpBox && hpBox.style.display === 'block'){
+      sub.textContent = 'Masukkan No. HP yang kamu daftarkan di e-Suanggi.';
+      var he = document.getElementById('bayarHpErr'); if(he) he.textContent = r.message || 'Gagal memuat.';
+      return;
+    }
+    if(hpBox) hpBox.style.display = 'none';
     if(r.status !== 'success'){ sub.textContent = r.message || 'Gagal memuat.'; return; }
     if(!r.aktif){ sub.textContent = 'Traktir Ngopi lewat aplikasi belum dibuka. Hubungi admin lewat bot Telegram.'; return; }
     bayarData = r;
@@ -3236,7 +3268,7 @@ function kirimSudahBayar(){
   if(!bayarKonteks || !bayarPilih || !bayarFotoData) return;
   var btn = document.getElementById('bayarBtn'), st = document.getElementById('bayarStatus');
   btn.disabled = true; st.className = 'bayar-status'; st.textContent = 'Mengirim foto bukti...';
-  panggilAPI('sudahBayar', { nip: bayarKonteks.nip, token: bayarKonteks.token, hari: bayarPilih, foto: bayarFotoData }).then(function(r){
+  panggilAPI('sudahBayar', { nip: bayarKonteks.nip, token: bayarKonteks.token, hp: bayarKonteks.hp || '', hari: bayarPilih, foto: bayarFotoData }).then(function(r){
     if(r.status === 'success'){
       st.className = 'bayar-status ok'; st.textContent = r.message; btn.style.display = 'none';
       var syarat = document.getElementById('bayarSyarat'); if(syarat) syarat.style.display = 'none';
