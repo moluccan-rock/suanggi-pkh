@@ -1514,6 +1514,7 @@ function isP2K2Aksi(item, aksiText){
   return !!item && /p2k2/i.test(String(item.rhk || '') + ' ' + String(item.indikator || '')) &&
     /^melaksanakan\s+pertemuan/i.test(String(aksiText || '').trim());
 }
+function isBeritaBaik(){ var it = getSelectedRhk(); return !!it && /penyebaran\s+berita\s+baik/i.test(String(it.rhk || '')); }
 function isP2K2(){ return isP2K2Aksi(getSelectedRhk(), getSelectedAksiText()); }
 function p2kJabatanLabel(){ return (JABATAN_META[state.jabatan] || {}).label || state.jabatan || ''; }
 function p2kKapital(t){
@@ -2647,7 +2648,10 @@ const html = (isFirst ? headerHtml : contHeaderHtml) + '<div class="p-sec">' + b
 pages.push(html);
 });
 pages.padat = level;
-const DOK_PER_PAGE = 2; // foto 5.48in x 3.5in per halaman A4 (margin 18mm)
+// RHK "Penyebaran Berita Baik Kementerian Sosial" (RHK 9 / nomor lain di jabatan tertentu) butuh banyak foto bukti:
+// 4 foto per lembar A4 (2x2, kotak potret, foto ditampilkan utuh). RHK lain tetap 2 foto per lembar.
+const modeBeritaBaik = isBeritaBaik();
+const DOK_PER_PAGE = modeBeritaBaik ? 4 : 2; // RHK lain: foto 5.48in x 3.5in per halaman A4 (margin 18mm)
 const LAMP_PER_PAGE = 1; // 1 halaman sumber (gambar/halaman PDF) per lembar A4 agar isinya terpampang penuh & terbaca
 const dokList = modeP2k ? state.dok.slice(4) : state.dok;
 if(dokList.length){
@@ -2656,7 +2660,7 @@ for(let i=0, p=1; i<dokList.length; i+=DOK_PER_PAGE, p++){
 const chunk = dokList.slice(i, i+DOK_PER_PAGE);
 pages.push(`
 <div class="paper-page-title">Dokumentasi Kegiatan${totalDokPages>1?` (${p}/${totalDokPages})`:''}</div>
-<div class="doc-grid-print">
+<div class="doc-grid-print${modeBeritaBaik ? ' dok4' : ''}">
 ${chunk.map(d=>`<figure><div class="doc-photo-frame"><img src="${d.url}"></div></figure>`).join('')}
 </div>
 `);
