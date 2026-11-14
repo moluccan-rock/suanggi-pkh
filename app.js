@@ -1564,12 +1564,43 @@ function susunDokBaris_(daftar, W, H, gap){
   }
   coba(0, []);
   const sk = terbaik.total > H ? H / terbaik.total : 1;
-  return terbaik.baris.map(function(b){
+  return { skor: terbaik.skor, baris: terbaik.baris.map(function(b){
     return { h: b.h * sk, items: b.idx.map(function(i){ return { d: daftar[i], w: b.h * sk * rasio[i], h: b.h * sk }; }) };
-  });
+  }) };
+}
+const DOK_W_MM = 174, DOK_H_MM = 250, DOK_GAP_MM = 3;
+/*
+ * Membagi daftar foto menjadi lembar-lembar (urutan foto tidak diubah).
+ * - Normalnya 6 foto per lembar, tata letak baris rapat (foto campur potret/landscape disusun otomatis).
+ * - Bila 6-9 foto BERURUTAN semuanya potret, jumlahnya dinaikkan (sampai 9, susunan 3x3) agar memenuhi lembar.
+ * - Sisa di lembar terakhir tidak pernah tinggal 1-2 foto sendirian bila bisa dihindari.
+ */
+function pecahDokLembar_(daftar){
+  const n = daftar.length, hasil = [];
+  const potret = function(d){ var m = dimFoto_(d); return m.h > m.w; };
+  let i = 0;
+  while(i < n){
+    const sisa = n - i;
+    if(sisa <= 6){ hasil.push(daftar.slice(i)); break; }
+    const valid = function(k){ const t = sisa - k; return k <= sisa && (t === 0 || t >= 3); };
+    let run = 0; while(i + run < n && run < 9 && potret(daftar[i + run])) run++;
+    let pilih = 0;
+    if(run >= 6){
+      let skorTerbaik = -1;
+      for(let k = 6; k <= run; k++){
+        if(!valid(k)) continue;
+        const sk = susunDokBaris_(daftar.slice(i, i + k), DOK_W_MM, DOK_H_MM, DOK_GAP_MM).skor;
+        if(sk > skorTerbaik + 1e-9){ skorTerbaik = sk; pilih = k; }
+      }
+    }
+    if(!pilih){ for(let k = 6; k <= 9; k++){ if(valid(k)){ pilih = k; break; } } }
+    if(!pilih) pilih = Math.min(6, sisa);
+    hasil.push(daftar.slice(i, i + pilih)); i += pilih;
+  }
+  return hasil;
 }
 function dokBarisHtml_(daftar){
-  const baris = susunDokBaris_(daftar, 174, 250, 3);
+  const baris = susunDokBaris_(daftar, DOK_W_MM, DOK_H_MM, DOK_GAP_MM).baris;
   return '<div class="doc-grid-print dok6">' + baris.map(function(r){
     return '<div class="dok6-baris" style="height:' + r.h.toFixed(2) + 'mm">' + r.items.map(function(it){
       return '<figure style="width:' + it.w.toFixed(2) + 'mm;height:' + it.h.toFixed(2) + 'mm"><img src="' + it.d.url + '"></figure>';
@@ -2711,22 +2742,25 @@ pages.push(html);
 });
 pages.padat = level;
 // RHK "Penyebaran Berita Baik Kementerian Sosial" (RHK 9 / nomor lain di jabatan tertentu) butuh banyak foto bukti:
-// 6 foto per lembar A4, tata letak baris rapat (foto utuh, tanpa putih di sisi). RHK lain tetap 2 foto per lembar.
+// 6-9 foto per lembar A4 (menyesuaikan bentuk foto), tata letak baris rapat, foto utuh. RHK lain tetap 2 foto per lembar.
 const modeBeritaBaik = isBeritaBaik();
-const DOK_PER_PAGE = modeBeritaBaik ? 6 : 2; // RHK lain: foto 5.48in x 3.5in per halaman A4 (margin 18mm)
 const LAMP_PER_PAGE = 1; // 1 halaman sumber (gambar/halaman PDF) per lembar A4 agar isinya terpampang penuh & terbaca
 const dokList = modeP2k ? state.dok.slice(4) : state.dok;
 if(dokList.length){
-const totalDokPages = Math.ceil(dokList.length / DOK_PER_PAGE);
-for(let i=0, p=1; i<dokList.length; i+=DOK_PER_PAGE, p++){
-const chunk = dokList.slice(i, i+DOK_PER_PAGE);
+// RHK lain: 2 foto per lembar (foto 5.48in x 3.5in, margin 18mm). RHK Berita Baik: 6-9 foto per lembar, tata letak baris rapat.
+const dokChunks = [];
+if(modeBeritaBaik) pecahDokLembar_(dokList).forEach(c=> dokChunks.push(c));
+else for(let i=0; i<dokList.length; i+=2) dokChunks.push(dokList.slice(i, i+2));
+const totalDokPages = dokChunks.length;
+dokChunks.forEach((chunk, idx)=>{
+const p = idx + 1;
 pages.push(`
 <div class="paper-page-title">Dokumentasi Kegiatan${totalDokPages>1?` (${p}/${totalDokPages})`:''}</div>
 ${modeBeritaBaik ? dokBarisHtml_(chunk) : `<div class="doc-grid-print">
 ${chunk.map(d=>`<figure><div class="doc-photo-frame"><img src="${d.url}"></div></figure>`).join('')}
 </div>`}
 `);
-}
+});
 }
 /* Setiap file yang diunggah pada "Lampiran Lainnya" (JPG langsung, atau tiap
 halaman dari file PDF yang sudah dirender jadi gambar) mendapat SATU
