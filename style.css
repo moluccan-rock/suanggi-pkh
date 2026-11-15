@@ -731,7 +731,8 @@ html[data-tema="kaca"] .step-item.done .step-label{color:#7FE0C4;}
 
 /* ===== Pemilih tema: bulatan kecil tepat di bawah tombol Keluar (hanya layar Pilih Jabatan) ===== */
 .tema-picker{position:fixed;top:52px;right:14px;z-index:10001;display:none;margin:0;gap:0;padding:5px 8px;border-radius:999px;background:rgba(17,17,20,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
-body.role-locked .tema-picker{display:flex;}
+body.role-locked .tema-picker{display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:14px;padding:5px 10px 6px;}
+.tema-picker .tema-judul{font-size:10.5px;font-weight:700;letter-spacing:.3px;line-height:1;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);white-space:nowrap;}
 .tema-picker .tema-dots{gap:7px;}
 .tema-dot,.tema-picker .tema-dot{width:16px;height:16px;border:1.5px solid rgba(255,255,255,.55);}
 .tema-dot:hover{transform:scale(1.2);}
