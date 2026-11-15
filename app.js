@@ -383,7 +383,19 @@ function prosesRegistrasi(){
     return;
   }
 
-  panggilAPI('daftarUser', { nama: nama, nip: nip, noWa: hp, jumlahHariDiminta: 1, email: email, setuju: true }).then(function(res){
+  var regProv = (document.getElementById('regProv').value || '').trim();
+  var regKab = (document.getElementById('regKab').value || '').trim();
+  if(!regProv){
+    errBox.textContent = 'Pilih Provinsi wilayah kerja Anda.';
+    errBox.style.display = 'block';
+    return;
+  }
+  if(regKab.length < 3){
+    errBox.textContent = 'Isi Kabupaten/Kota wilayah kerja Anda (minimal 3 huruf).';
+    errBox.style.display = 'block';
+    return;
+  }
+  panggilAPI('daftarUser', { nama: nama, nip: nip, noWa: hp, jumlahHariDiminta: 1, email: email, setuju: true, provinsi: regProv, kabkota: regKab }).then(function(res){
       if(res.status === 'success'){
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('registerSuccessBox').style.display = 'block';
@@ -398,7 +410,44 @@ function prosesRegistrasi(){
     });
 }
 
+/* =================== WILAYAH KERJA (Provinsi + Kab/Kota) =================== */
+const DAFTAR_PROVINSI = ['Aceh','Sumatera Utara','Sumatera Barat','Riau','Kepulauan Riau','Jambi','Sumatera Selatan','Kepulauan Bangka Belitung','Bengkulu','Lampung','DKI Jakarta','Banten','Jawa Barat','Jawa Tengah','DI Yogyakarta','Jawa Timur','Bali','Nusa Tenggara Barat','Nusa Tenggara Timur','Kalimantan Barat','Kalimantan Tengah','Kalimantan Selatan','Kalimantan Timur','Kalimantan Utara','Sulawesi Utara','Gorontalo','Sulawesi Tengah','Sulawesi Barat','Sulawesi Selatan','Sulawesi Tenggara','Maluku','Maluku Utara','Papua','Papua Barat','Papua Barat Daya','Papua Selatan','Papua Tengah','Papua Pegunungan'];
+function isiPilihanProvinsi_(){
+  ['regProv','wilProv'].forEach(function(id){
+    var sel = document.getElementById(id);
+    if(!sel || sel.options.length > 1) return;
+    DAFTAR_PROVINSI.forEach(function(p){ var o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+  });
+}
+var wilayahSudahDitanya = false;
+function cekWilayah_(){
+  if(wilayahSudahDitanya || !currentUser || currentUser.wilayahLengkap !== false) return;
+  var gerbang = document.getElementById('loginGate');
+  if(gerbang && getComputedStyle(gerbang).display !== 'none') return; // tunggu gerbang login tertutup
+  wilayahSudahDitanya = true;
+  isiPilihanProvinsi_();
+  var er = document.getElementById('wilErr'); if(er) er.textContent = '';
+  document.getElementById('wilayahOverlay').style.display = 'flex';
+}
+function tutupWilayah(){ var o = document.getElementById('wilayahOverlay'); if(o) o.style.display = 'none'; }
+function simpanWilayah(){
+  var prov = (document.getElementById('wilProv').value || '').trim();
+  var kab = (document.getElementById('wilKab').value || '').trim();
+  var er = document.getElementById('wilErr'), btn = document.getElementById('wilBtn');
+  if(!prov){ er.textContent = 'Pilih Provinsi dulu.'; return; }
+  if(kab.length < 3){ er.textContent = 'Isi Kabupaten/Kota (minimal 3 huruf).'; return; }
+  if(!currentUser) return;
+  er.textContent = ''; btn.disabled = true; btn.textContent = 'Menyimpan...';
+  panggilAPI('simpanWilayah', { nip: currentUser.nip, token: currentUser.token, provinsi: prov, kabkota: kab }).then(function(res){
+    btn.disabled = false; btn.textContent = 'Simpan';
+    if(res.status === 'success'){ currentUser.wilayahLengkap = true; currentUser.provinsi = res.provinsi; currentUser.kabkota = res.kabkota; tutupWilayah(); }
+    else er.textContent = res.message || 'Gagal menyimpan.';
+  }).catch(function(err){ btn.disabled = false; btn.textContent = 'Simpan'; er.textContent = 'Gagal terhubung ke server: ' + err.message; });
+}
+isiPilihanProvinsi_();
+
 function masukKeAplikasi(tahanGerbang){
+  setTimeout(cekWilayah_, 1500);
   setTimeout(tampilkanBannerTelegram, 6000); // ajakan Telegram, tidak menghalangi apa pun
   terapkanModeTrial_();
   terapkanTombolBayar_();
@@ -473,6 +522,7 @@ function selesaiBolaLogin(){
   sedangLogin = false;
   document.getElementById('loginGate').style.display = 'none';
   tampilBolaLogin(false, true);
+  setTimeout(cekWilayah_, 800);
 }
 
 /* =================== PANTAU MASA AKTIF TOKEN (Kredit = jumlah hari pakai) =================== */
