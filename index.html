@@ -90,13 +90,18 @@
         <input type="text" id="loginToken" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; text-transform:uppercase;">
       </div>
       <button class="btn btn-gold" id="btnLoginMasuk" style="width:100%; justify-content:center;" onclick="prosesLoginToken()">Masuk</button>
-      <div class="gerbang-pilih">
-        <p class="gerbang-tanya">Belum punya akun?</p>
-        <button type="button" class="btn-gerbang-alt btn-gerbang-utama" onclick="tampilkanFormDaftar()">📝 Daftar Akun Baru (gratis 24 jam)</button>
-        <button type="button" class="btn-gerbang-alt" onclick="tampilkanFormTgGerbang()">📲 Sudah daftar? Hubungkan Telegram</button>
+      <!-- Gerbang ringkas: tombol yang relevan saja di luar; sisanya dilipat di bawah satu tombol Bantuan -->
+      <div class="gerbang-pilih" id="gerbangPilih">
+        <button type="button" class="btn-gerbang-alt btn-gerbang-utama" id="gDaftarLuar" onclick="tampilkanFormDaftar()">📝 Daftar Akun Baru (gratis 24 jam)</button>
+        <button type="button" class="btn btn-gold" id="gTraktirLuar" style="display:none; width:100%; justify-content:center; margin:0 0 8px;" onclick="bukaHarga()">☕ Traktir Ngopi untuk perpanjang</button>
+        <button type="button" class="btn-gerbang-alt btn-gerbang-bantuan" id="btnBantuanGerbang" aria-expanded="false" aria-controls="gerbangBantuan" onclick="toggleBantuanGerbang()">🛟 Bantuan <span id="bantuanPanah" aria-hidden="true">▾</span></button>
+        <div id="gerbangBantuan" style="display:none;">
+          <button type="button" class="btn-gerbang-alt btn-gerbang-utama" id="gDaftarDalam" onclick="tampilkanFormDaftar()">📝 Daftar Akun Baru (gratis 24 jam)</button>
+          <button type="button" class="btn-gerbang-alt" id="gTelegramDalam" onclick="tampilkanFormTgGerbang()">📲 Sudah daftar? Hubungkan Telegram</button>
+          <button type="button" class="btn btn-gold" id="gTraktirDalam" style="width:100%; justify-content:center; margin:0 0 6px;" onclick="bukaHarga()">☕ Traktir Ngopi (tanpa login)</button>
+          <p style="text-align:center; margin:4px 0 0; font-size:11px; color:rgba(255,255,255,.75);">Belum bisa masuk atau Telegram bermasalah? Traktir Ngopi langsung di sini, admin aktifkan akunmu.</p>
+        </div>
       </div>
-      <button type="button" class="btn btn-gold" id="btnBayarGerbang" style="width:100%; justify-content:center; margin-top:4px;" onclick="bukaHarga()">☕ Traktir Ngopi (tanpa login)</button>
-      <p style="text-align:center; margin:8px 0 0; font-size:11px; color:rgba(255,255,255,.75);">Belum bisa masuk atau Telegram bermasalah? Traktir Ngopi langsung di sini, admin aktifkan akunmu.</p>
     </div>
 
     <!-- FORM 2: PENDAFTARAN (Nama + NIP + WA/Telegram) -->

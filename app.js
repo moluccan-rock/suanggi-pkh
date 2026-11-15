@@ -213,6 +213,51 @@ function pemanasanServer(){
     fetch(GAS_URL + '?action=ping', { method:'GET', mode:'no-cors', cache:'no-store' }).catch(function(){});
   }catch(e){}
 }
+/* =================== GERBANG LOGIN RINGKAS (menyesuaikan perangkat) ===================
+   Browser mengingat PENANDA status (bukan token): NIP, Telegram terhubung atau tidak, jenis akun, dan tanggal habis.
+   Perangkat baru: tombol Daftar tampil di luar. Perangkat yang dikenal: hanya form Masuk + tombol Bantuan; tombol
+   Traktir Ngopi muncul di luar hanya bila masa aktif sudah habis atau tinggal <= 3 hari. Semua tombol tetap ada di Bantuan. */
+const PERANGKAT_KEY = 'suanggi_perangkat';
+const PERANGKAT_BERLAKU_MS = 60 * 864e5, PERANGKAT_HAMPIR_HABIS_MS = 3 * 864e5;
+function simpanPenandaPerangkat_(p){
+  try{ SafeStorage.set(PERANGKAT_KEY, JSON.stringify(Object.assign({ ts: Date.now() }, p))); }catch(e){}
+}
+function bacaPenandaPerangkat_(){
+  try{
+    var p = JSON.parse(SafeStorage.get(PERANGKAT_KEY) || 'null');
+    if(!p || !p.nip || !p.ts || (Date.now() - p.ts) > PERANGKAT_BERLAKU_MS) return null;
+    return p;
+  }catch(e){ return null; }
+}
+function terapkanGerbangPintar_(){
+  var p = bacaPenandaPerangkat_();
+  var el = function(id){ return document.getElementById(id); };
+  var daftarLuar = !p;                                         // perangkat baru
+  var perluTraktir = false;
+  if(p && !p.gratis){
+    var sisa = p.exp ? (new Date(p.exp).getTime() - Date.now()) : -1;
+    perluTraktir = !!p.habis || sisa <= PERANGKAT_HAMPIR_HABIS_MS;
+  }
+  if(el('gDaftarLuar')) el('gDaftarLuar').style.display = daftarLuar ? '' : 'none';
+  if(el('gDaftarDalam')) el('gDaftarDalam').style.display = daftarLuar ? 'none' : '';
+  if(el('gTraktirLuar')) el('gTraktirLuar').style.display = perluTraktir ? '' : 'none';
+  if(el('gTraktirDalam')) el('gTraktirDalam').style.display = perluTraktir ? 'none' : '';
+  if(el('gTelegramDalam')) el('gTelegramDalam').style.display = '';
+  tutupBantuanGerbang_();
+}
+function tutupBantuanGerbang_(){
+  var b = document.getElementById('gerbangBantuan'), t = document.getElementById('btnBantuanGerbang'), a = document.getElementById('bantuanPanah');
+  if(b) b.style.display = 'none'; if(t) t.setAttribute('aria-expanded', 'false'); if(a) a.textContent = '▾';
+}
+function toggleBantuanGerbang(){
+  var b = document.getElementById('gerbangBantuan'), t = document.getElementById('btnBantuanGerbang'), a = document.getElementById('bantuanPanah');
+  if(!b) return;
+  var buka = b.style.display === 'none';
+  b.style.display = buka ? 'block' : 'none';
+  if(t) t.setAttribute('aria-expanded', buka ? 'true' : 'false');
+  if(a) a.textContent = buka ? '▴' : '▾';
+}
+
 function cekStatusLogin(){
   pemanasanServer();
   var saved = null;
@@ -236,6 +281,7 @@ function tampilkanFormLogin(){
   document.getElementById('perpanjanganForm').style.display = 'none';
   document.getElementById('loginForm').style.display = 'block';
   document.getElementById('loginError').style.display = 'none';
+  terapkanGerbangPintar_();
 }
 
 function tampilkanFormDaftar(){
@@ -334,10 +380,12 @@ function prosesLoginToken(){
         currentUser = res.data;
         currentUser.token = token;
         if(res.jabatanData){ window.__jabatanDariLogin = { data: res.jabatanData, meta: res.jabatanMeta || {} }; }
+        simpanPenandaPerangkat_({ nip: nip, tg: !!currentUser.telegramTerhubung, gratis: !!(currentUser.gratis || currentUser.selaluAktif), exp: currentUser.tanggalExpired || '', habis: false });
         SafeStorage.set('suanggi_login', JSON.stringify({ nip: nip, ts: Date.now() })); // token SENGAJA tidak disimpan (lihat catatan keamanan di cekStatusLogin)
         // Bola tetap memantul; gerbang login baru ditutup setelah daftar jabatan selesai dimuat.
         masukKeAplikasi(true);
       } else if(res.status === 'expired'){
+        simpanPenandaPerangkat_({ nip: nip, tg: !!(res.data && res.data.telegramTerhubung), gratis: false, exp: '', habis: true });
         sedangLogin = false; tampilBolaLogin(false, true);
         tampilkanFormPerpanjangan(res.data.nip, res.data.nama, res.message, res.data.bayarAktif);
       } else {
