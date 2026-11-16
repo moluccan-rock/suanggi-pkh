@@ -2768,32 +2768,37 @@ function muatKopTersimpan_(){
   }catch(e){ kopSurat = null; }
 }
 function bukaPilihKop(){ var f = document.getElementById('f_kop'); if(f) f.click(); }
+var kopHapusSampai = 0;
 function hapusKop(){
-  if(!confirm('Hapus kop surat dari perangkat ini?')) return;
-  kopSurat = null; SafeStorage.remove(kopKunci_()); renderPreview();
+  // Dua ketukan (tanpa confirm/alert, karena dialog bawaan sering diblokir di peramban dalam aplikasi)
+  if(Date.now() > kopHapusSampai){ kopHapusSampai = Date.now() + 6000; kopKabar_('Ketuk Hapus sekali lagi untuk membuang kop dari perangkat ini.', true); return; }
+  kopHapusSampai = 0;
+  kopSurat = null; SafeStorage.remove(kopKunci_()); renderPreview(); kopKabar_('Kop dihapus dari perangkat ini.', false);
 }
-function kopCekBerkas_(file){
+function kopBacaDataUrl_(file){
   return new Promise(function(resolve, reject){
-    if(!file) return reject(new Error('Tidak ada berkas.'));
-    if(file.size > KOP_MAX_BYTE_ASLI) return reject(new Error('Ukuran gambar terlalu besar (maksimal 8 MB).'));
     var fr = new FileReader();
-    fr.onerror = function(){ reject(new Error('Gambar tidak bisa dibaca.')); };
-    fr.onload = function(){
-      var b = new Uint8Array(fr.result.slice(0, 8));
-      var jpg = b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF;
-      var png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47;
-      if(!jpg && !png) return reject(new Error('Format harus PNG atau JPG (berkas lain, termasuk SVG, tidak diterima).'));
-      resolve(file);
-    };
-    fr.readAsArrayBuffer(file.slice(0, 8));
+    fr.onerror = function(){ reject(new Error('Gambar tidak bisa dibaca. Coba pilih ulang, atau simpan gambar ke galeri/unduhan lalu pilih dari sana.')); };
+    fr.onload = function(){ resolve(String(fr.result || '')); };
+    fr.readAsDataURL(file);
   });
 }
-function kopProses_(file){
+/** Periksa isi berkas (bukan hanya nama/ekstensi): hanya JPEG atau PNG asli yang diterima. */
+function kopCekDataUrl_(dataUrl, ukuran){
+  if(ukuran > KOP_MAX_BYTE_ASLI) throw new Error('Ukuran gambar terlalu besar (maksimal 8 MB).');
+  var m = /^data:([^;,]*);base64,([A-Za-z0-9+\/=]+)$/.exec(dataUrl);
+  if(!m || m[2].length < 16) throw new Error('Gambar kosong atau tidak bisa dibaca.');
+  var head = atob(m[2].slice(0, 16));
+  var jpg = head.charCodeAt(0) === 0xFF && head.charCodeAt(1) === 0xD8 && head.charCodeAt(2) === 0xFF;
+  var png = head.charCodeAt(0) === 0x89 && head.slice(1, 4) === 'PNG';
+  if(!jpg && !png) throw new Error('Format harus PNG atau JPG (berkas lain, termasuk SVG dan HEIC, tidak diterima).');
+  return dataUrl;
+}
+function kopProses_(dataUrl){
   return new Promise(function(resolve, reject){
-    var url = URL.createObjectURL(file), im = new Image();
-    im.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('Gambar rusak atau tidak bisa dibuka.')); };
+    var im = new Image();
+    im.onerror = function(){ reject(new Error('Gambar rusak atau tidak bisa dibuka.')); };
     im.onload = function(){
-      URL.revokeObjectURL(url);
       var w0 = im.naturalWidth, h0 = im.naturalHeight;
       if(!w0 || !h0 || w0 < 200 || h0 < 30) return reject(new Error('Gambar terlalu kecil (minimal 200 x 30 piksel).'));
       var k = Math.min(1, KOP_MAX_LEBAR_PX / w0), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
@@ -2816,8 +2821,20 @@ function kopProses_(file){
       }
       resolve({ url: c.toDataURL('image/jpeg', 0.92), w: w, h: h });
     };
-    im.src = url;
+    im.src = dataUrl;
   });
+}
+/** Kabar singkat yang PASTI terlihat (alert sering diblokir di peramban dalam aplikasi seperti Telegram/WhatsApp). */
+function kopKabar_(teks, galat){
+  var el = document.getElementById('kopToast');
+  if(!el){
+    el = document.createElement('div'); el.id = 'kopToast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483000;max-width:92vw;padding:10px 16px;border-radius:10px;font:600 13px/1.4 Inter,system-ui,sans-serif;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.35);text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.style.background = galat ? '#b91c1c' : '#065f46';
+  el.textContent = teks; el.style.display = 'block';
+  clearTimeout(el.__t); el.__t = setTimeout(function(){ el.style.display = 'none'; }, galat ? 9000 : 3500);
 }
 function kopInfoUkuran_(){
   if(!kopSurat) return '';
@@ -2843,22 +2860,34 @@ function kopHtml_(interactive){
   function pasang(){
     var f = document.getElementById('f_kop');
     if(!f || f.__terpasang) return; f.__terpasang = true;
-    f.addEventListener('change', function(){
-      var file = f.files && f.files[0]; f.value = '';
+    var proses = function(){
+      var file = f.files && f.files[0];
       if(!file) return;
-      kopCekBerkas_(file).then(kopProses_).then(function(hasil){
+      kopKabar_('Memproses kop… ' + (file.name || ''), false);
+      // PENTING: input baru dikosongkan SETELAH berkas selesai dibaca (mengosongkan lebih awal membatalkan berkas di sebagian HP).
+      kopBacaDataUrl_(file).then(function(du){ return kopCekDataUrl_(du, file.size); }).then(kopProses_).then(function(hasil){
         kopSurat = hasil;
         SafeStorage.set(kopKunci_(), JSON.stringify(hasil));
-        if(SafeStorage.get(kopKunci_()) === null) alert('Kop terpasang untuk sesi ini, tetapi tidak bisa disimpan di perangkat (penyimpanan browser diblokir). Anda perlu mengunggah ulang nanti.');
+        var tersimpan = SafeStorage.get(kopKunci_()) !== null;
         renderPreview();
-      }).catch(function(err){ alert('Kop tidak bisa dipasang: ' + ((err && err.message) || err)); });
-    });
+        kopKabar_(tersimpan ? 'Kop terpasang ✔ (' + kopInfoUkuran_() + ')' : 'Kop terpasang untuk sesi ini, tetapi tidak bisa disimpan di perangkat (penyimpanan browser diblokir). Unggah ulang nanti.', !tersimpan);
+      }).catch(function(err){
+        console.error('Kop gagal dipasang:', err);
+        kopKabar_('Kop tidak bisa dipasang: ' + ((err && err.message) || err), true);
+      }).then(function(){ try{ f.value = ''; }catch(e){} });
+    };
+    f.addEventListener('change', proses);
   }
   pasang();
 })();
+var kopPeringatanSampai = 0;
+/** Simpan PDF tanpa kop: ketukan pertama memberi peringatan, ketukan kedua (dalam 12 detik) melanjutkan. */
 function konfirmasiTanpaKop_(){
   if(kopSurat) return true;
-  return confirm('Kop surat belum diunggah.\nPDF akan disimpan dengan area kop KOSONG (cocok bila Anda mencetak di kertas berkop).\n\nLanjut simpan?');
+  if(Date.now() < kopPeringatanSampai){ kopPeringatanSampai = 0; return true; }
+  kopPeringatanSampai = Date.now() + 12000;
+  kopKabar_('Kop surat belum diunggah. PDF akan disimpan dengan area kop KOSONG (cocok untuk kertas berkop). Ketuk Unduh PDF sekali lagi untuk melanjutkan.', true);
+  return false;
 }
 
 /* Setiap entri pada array yang dikembalikan mewakili SATU lembar kertas A4 penuh.
@@ -3203,6 +3232,7 @@ if(btn){ btn.disabled = false; btn.textContent = 'Unduh PDF'; }
 }
 document.getElementById('btnConfirmDownloadPdf').addEventListener('click', doPrint);
 document.getElementById('btnPrintFallback').addEventListener('click', function(){
+if(!konfirmasiTanpaKop_()) return;
 renderPreview(); // pastikan data yang dicetak selalu yang terbaru
 printFallback();
 });
