@@ -2768,6 +2768,7 @@ function muatKopTersimpan_(){
   }catch(e){ kopSurat = null; }
 }
 function bukaPilihKop(){ var f = document.getElementById('f_kop'); if(f) f.click(); }
+(function(){ var f=document.getElementById('f_kop'); if(f) f.addEventListener('click', function(e){ e.stopPropagation(); }); })();
 var kopHapusSampai = 0;
 function hapusKop(){
   // Dua ketukan (tanpa confirm/alert, karena dialog bawaan sering diblokir di peramban dalam aplikasi)
