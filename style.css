@@ -431,6 +431,15 @@
   }
   .paper.page-break{page-break-before:always;break-before:page;}
   .paper-head{text-align:center;margin-bottom:18px;}
+  .paper-head .kop-kosong{width:100%;margin:0 auto 12px;}
+  .paper-head .kop-wrap{position:relative;}
+  .paper-head .kop-aksi{position:absolute;top:4px;right:4px;display:flex;gap:4px;font-family:'Inter',sans-serif;}
+  .paper-head .kop-aksi button{font:inherit;font-size:14px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid #9ca3af;background:rgba(255,255,255,.92);color:#1f2937;cursor:pointer;}
+  .paper-head .kop-info{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-family:'Inter',sans-serif;font-size:12px;color:#374151;background:rgba(255,255,255,.88);border:1px solid #d1d5db;border-radius:4px;padding:1px 6px;white-space:nowrap;pointer-events:none;}
+  .paper-head .kop-placeholder{box-sizing:border-box;width:100%;margin:0 auto 12px;border:2px dashed #9ca3af;border-radius:6px;background:repeating-linear-gradient(45deg,#f9fafb,#f9fafb 10px,#f3f4f6 10px,#f3f4f6 20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 14px;text-align:center;cursor:pointer;font-family:'Inter',sans-serif;color:#374151;line-height:1.35;}
+  .paper-head .kop-placeholder:hover,.paper-head .kop-placeholder:focus-visible{border-color:#7f1d1d;background:#fff7f5;outline:none;}
+  .paper-head .kop-ph-judul{font-size:17px;font-weight:700;color:#7f1d1d;}
+  .paper-head .kop-ph-ukuran{font-size:12.5px;color:#6b7280;}
   .paper-head .kop-img{width:100%;max-width:100%;height:auto;max-height:130px;object-fit:contain;margin:0 auto 12px;display:block;}
   .paper-head .direktorat{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--navy-800);margin-bottom:2px;}
   .paper-head .kementerian{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-600);margin-bottom:10px;}
