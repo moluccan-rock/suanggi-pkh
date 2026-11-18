@@ -17,6 +17,15 @@ async function panggilAPI(action, data) {
   }
 }
 
+/* Pemanasan server: bangunkan Apps Script begitu halaman dibuka / kolom NIP disentuh, supaya login tidak kena "cold start". */
+var __sudahPanas = 0;
+function panaskanServer_(){
+  if(Date.now() - __sudahPanas < 240000) return; __sudahPanas = Date.now();
+  try{ fetch(GAS_URL + '?action=ping', { mode: 'no-cors', cache: 'no-store' }).catch(function(){}); }catch(e){}
+}
+panaskanServer_();
+document.addEventListener('focusin', function(e){ if(e.target && (e.target.id === 'loginNip' || e.target.id === 'loginToken')) panaskanServer_(); });
+
 /* ========== LOADER html2canvas + jsPDF (multi-CDN + fallback offline) ========== */
 function __loadScriptOnce(url, timeoutMs){
 return new Promise(function(resolve, reject){
