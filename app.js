@@ -4,17 +4,25 @@
 // GANTI dengan URL /exec hasil deploy Kode.gs sebagai Web App.
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzMrFmI42amIs7kpqb5qxf3mgERlHS68IqR7iOUK_eacJtH29SV2A-jLqMpWXcqm6MiVg/exec';
 
+/* Aksi yang aman diulang otomatis bila koneksi terputus di tengah jalan (hasilnya sama walau terkirim dua kali). */
+var AKSI_AMAN_ULANG = { simpanWilayah:1, telegramCek:1, loginDenganToken:1, telegramKodeGerbang:1, ambilDataJabatan:1, telegramStatus:1 };
 async function panggilAPI(action, data) {
-  try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // WAJIB text/plain — hindari CORS preflight yang diblok GAS
-      body: JSON.stringify({ action, ...data })
-    });
-    return await res.json();
-  } catch (err) {
-    return { status: 'error', success: false, message: 'Gagal terhubung ke server: ' + err.message };
+  var percobaan = AKSI_AMAN_ULANG[action] ? 3 : 1, galat = null;
+  for(var i = 0; i < percobaan; i++){
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // WAJIB text/plain — hindari CORS preflight yang diblok GAS
+        body: JSON.stringify({ action, ...data })
+      });
+      return await res.json();
+    } catch (err) {
+      galat = err;
+      if(i < percobaan - 1) await new Promise(function(r){ setTimeout(r, 1200 * (i + 1)); });
+    }
   }
+  var offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+  return { status: 'error', success: false, message: offline ? 'Tidak ada koneksi internet. Periksa sinyal lalu coba lagi.' : 'Koneksi ke server terputus (sudah dicoba ulang otomatis). Periksa sinyal, lalu tekan lagi.' };
 }
 
 /* Pemanasan server: bangunkan Apps Script begitu halaman dibuka / kolom NIP disentuh, supaya login tidak kena "cold start". */
