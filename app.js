@@ -485,12 +485,20 @@ function simpanWilayah(){
   if(!prov){ er.textContent = 'Pilih Provinsi dulu.'; return; }
   if(kab.length < 3){ er.textContent = 'Isi Kabupaten/Kota (minimal 3 huruf).'; return; }
   if(!currentUser) return;
-  er.textContent = ''; btn.disabled = true; btn.textContent = 'Menyimpan...';
+  er.textContent = '';
+  // UI instan: tutup kotak sekarang, simpan di latar belakang; bila gagal, kotak dibuka lagi dengan pesannya.
+  var sebelum = { l: currentUser.wilayahLengkap, p: currentUser.provinsi, k: currentUser.kabkota };
+  currentUser.wilayahLengkap = true; currentUser.provinsi = prov; currentUser.kabkota = kab;
+  tutupWilayah(); kopKabar_('Wilayah kerja disimpan…', false);
   panggilAPI('simpanWilayah', { nip: currentUser.nip, token: currentUser.token, provinsi: prov, kabkota: kab }).then(function(res){
-    btn.disabled = false; btn.textContent = 'Simpan';
-    if(res.status === 'success'){ currentUser.wilayahLengkap = true; currentUser.provinsi = res.provinsi; currentUser.kabkota = res.kabkota; tutupWilayah(); }
-    else er.textContent = res.message || 'Gagal menyimpan.';
-  }).catch(function(err){ btn.disabled = false; btn.textContent = 'Simpan'; er.textContent = 'Gagal terhubung ke server: ' + err.message; });
+    if(res.status === 'success'){ currentUser.provinsi = res.provinsi; currentUser.kabkota = res.kabkota; kopKabar_('Wilayah kerja tersimpan ✔', false); }
+    else gagalWilayah_(sebelum, res.message || 'Gagal menyimpan.');
+  }).catch(function(err){ gagalWilayah_(sebelum, 'Gagal terhubung ke server: ' + err.message); });
+}
+function gagalWilayah_(sebelum, pesan){
+  currentUser.wilayahLengkap = sebelum.l; currentUser.provinsi = sebelum.p; currentUser.kabkota = sebelum.k;
+  document.getElementById('wilayahOverlay').style.display = 'flex';
+  document.getElementById('wilErr').textContent = pesan;
 }
 isiPilihanProvinsi_();
 

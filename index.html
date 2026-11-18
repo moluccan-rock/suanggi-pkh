@@ -122,11 +122,11 @@
       </div>
       <div style="margin-bottom:10px;">
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Provinsi wilayah kerja *</label>
-        <select id="regProv" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fff;"><option value="">— Pilih provinsi —</option></select>
+        <select id="regProv" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fff; color:#111827;"><option value="">— Pilih provinsi —</option></select>
       </div>
       <div style="margin-bottom:10px;">
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Kabupaten/Kota wilayah kerja *</label>
-        <input type="text" id="regKab" maxlength="60" placeholder="cth. Kota Ambon atau Maluku Tengah" autocomplete="off" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+        <input type="text" id="regKab" maxlength="60" placeholder="cth. Kota Ambon atau Maluku Tengah" autocomplete="off" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fff; color:#111827;">
       </div>
       <div style="margin-bottom:10px;">
         <label style="display:block; font-size:12px; font-weight:600; color:#4b5563; margin-bottom:5px;">Email (opsional — pesan cadangan jika Telegram bermasalah)</label>
@@ -257,11 +257,11 @@
     <p class="harga-sub">Isi sekali saja. Data ini membantu admin memetakan pengguna e-Suanggi per wilayah.</p>
     <div style="margin:0 0 10px;">
       <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px;">Provinsi</label>
-      <select id="wilProv" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font:inherit; background:#fff;"><option value="">— Pilih provinsi —</option></select>
+      <select id="wilProv" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font:inherit; background:#fff; color:#111827;"><option value="">— Pilih provinsi —</option></select>
     </div>
     <div style="margin:0 0 10px;">
       <label style="display:block; font-size:12px; font-weight:600; margin-bottom:5px;">Kabupaten/Kota</label>
-      <input type="text" id="wilKab" maxlength="60" placeholder="cth. Kota Ambon atau Maluku Tengah" autocomplete="off" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font:inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault();simpanWilayah();}">
+      <input type="text" id="wilKab" maxlength="60" placeholder="cth. Kota Ambon atau Maluku Tengah" autocomplete="off" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; box-sizing:border-box; font:inherit; background:#fff; color:#111827;" onkeydown="if(event.key==='Enter'){event.preventDefault();simpanWilayah();}">
     </div>
     <div id="wilErr" style="color:#b91c1c; font-size:12px; min-height:16px; margin:0 0 8px;"></div>
     <button type="button" id="wilBtn" class="btn btn-gold" style="width:100%; justify-content:center;" onclick="simpanWilayah()">Simpan</button>
