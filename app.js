@@ -690,7 +690,18 @@ function handleLogout(otomatis){
     errBox.textContent = 'Sesi berakhir karena tidak ada aktivitas selama 30 menit. Silakan login kembali.';
     errBox.style.display = 'block';
   }
+  // Bersih total: lupakan isian yang diingat perangkat (P2K2) lalu muat ulang halaman (di GitHub Pages reload aman),
+  // sehingga login berikutnya benar-benar mulai dari awal. Pesan "sesi berakhir" dibawa lewat sessionStorage.
+  SafeStorage.remove(P2K2_INGAT_KEY);
+  try{ if(otomatis) sessionStorage.setItem('suanggi_pesan_sesi', '1'); }catch(e){}
+  setTimeout(function(){ try{ location.reload(); }catch(e){} }, 60);
 }
+(function(){
+  var ada = false; try{ ada = sessionStorage.getItem('suanggi_pesan_sesi') === '1'; sessionStorage.removeItem('suanggi_pesan_sesi'); }catch(e){}
+  if(!ada) return;
+  var eb = document.getElementById('loginError');
+  if(eb){ eb.textContent = 'Sesi berakhir karena tidak ada aktivitas selama 30 menit. Silakan login kembali.'; eb.style.display = 'block'; }
+})();
 document.getElementById('btnLogoutFloating').addEventListener('click', function(){
   handleLogout(false);
 });
