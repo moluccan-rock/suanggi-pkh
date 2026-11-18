@@ -3352,7 +3352,7 @@ function siapkanTautanTelegram_(prefix, res){
   var kode = res.telegramKode, n = 0;
   timerPollTelegram = setInterval(function(){
     n++;
-    if(n > 150){ hentikanPollTelegram_(); return; } // ±10 menit
+    if(n > 200){ hentikanPollTelegram_(); return; } // ±10 menit
     panggilAPI('telegramCek', { kode: kode }).then(function(r){
       if(r && r.linked){
         hentikanPollTelegram_();
@@ -3360,7 +3360,7 @@ function siapkanTautanTelegram_(prefix, res){
         st.textContent = (prefix === 'tgGerbang') ? '✅ Telegram terhubung! Sekarang kamu bisa kembali ke halaman masuk. Pengingat dan token berikutnya dikirim ke Telegram.' : '✅ Telegram terhubung! Token akan dikirim ke sana begitu akun diaktifkan.';
       }
     }).catch(function(){});
-  }, 4000);
+  }, 3000);
 }
 
 /* Banner non-blokir untuk pengguna yang sudah login tetapi belum menghubungkan Telegram */
