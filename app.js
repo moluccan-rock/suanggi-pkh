@@ -640,7 +640,7 @@ function sinkronAkun_(){
       var d = res.data, berubah = (currentUser.tanggalExpired || '') !== (d.tanggalExpired || '') || !!currentUser.gratis !== !!d.gratis || !!currentUser.trial !== !!d.trial;
       currentUser.kredit = d.kredit; currentUser.tanggalExpired = d.tanggalExpired || '';
       currentUser.gratis = !!d.gratis; currentUser.selaluAktif = !!d.selaluAktif; currentUser.trial = !!d.trial;
-      updateCreditBadge();
+      updateCreditBadge(); terapkanModeTrial_();
       if(berubah){
         mulaiPantauKedaluwarsaToken();
         simpanPenandaPerangkat_({ nip: nip, tg: !!currentUser.telegramTerhubung, gratis: !!(d.gratis || d.selaluAktif), exp: d.tanggalExpired || '', habis: false });
