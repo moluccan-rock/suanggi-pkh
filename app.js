@@ -546,6 +546,7 @@ function masukKeAplikasi(tahanGerbang){
   if(btnLogout) btnLogout.style.display = 'inline-flex';
   mulaiPantauIdle();
   mulaiPantauKedaluwarsaToken();
+  mulaiSinkronAkun_();
 
   // PEMBARUAN KEAMANAN: data RHK/Indikator/Rencana Aksi TIDAK LAGI tertanam
   // di kode yang dikirim ke browser sejak awal (dulu bisa dilihat siapa pun
@@ -609,19 +610,54 @@ function mulaiPantauKedaluwarsaToken(){
   if(!currentUser || currentUser.gratis || !currentUser.tanggalExpired) return; // akun Gratis: tanpa batas waktu
   timerCekExpired = setInterval(function(){
     updateCreditBadge();
-    if(new Date(currentUser.tanggalExpired) < new Date()){
-      clearInterval(timerCekExpired);
-      SafeStorage.remove('suanggi_login');
-      var nipUser = currentUser.nip, namaUser = currentUser.nama, trialHabis = !!currentUser.trial, bayarAktifUser = !!currentUser.bayarAktif;
-      currentUser = null;
-      document.body.classList.add('role-locked');
-      document.body.classList.remove('step-edit', 'step-rhk');
-      document.getElementById('btnLogoutFloating').style.display = 'none';
-      document.getElementById('loginGate').style.display = 'flex';
-      tampilkanFormPerpanjangan(nipUser, namaUser, trialHabis ? 'Trial 24 jam-mu sudah selesai ☕ Terima kasih sudah mencoba! Yuk lanjut traktir ngopi.' : 'Masa aktif akunmu baru saja berakhir ☕ Yuk perpanjang supaya bisa lanjut.', bayarAktifUser);
-    }
+    if(new Date(currentUser.tanggalExpired) < new Date()) akhiriMasaAktif_();
   }, 5 * 60 * 1000); // cek tiap 5 menit — cukup responsif tanpa membebani server
 }
+function akhiriMasaAktif_(){
+  if(!currentUser) return;
+  clearInterval(timerCekExpired); clearInterval(timerSinkronAkun);
+  SafeStorage.remove('suanggi_login');
+  var nipUser = currentUser.nip, namaUser = currentUser.nama, trialHabis = !!currentUser.trial, bayarAktifUser = !!currentUser.bayarAktif;
+  currentUser = null;
+  document.body.classList.add('role-locked');
+  document.body.classList.remove('step-edit', 'step-rhk');
+  document.getElementById('btnLogoutFloating').style.display = 'none';
+  document.getElementById('loginGate').style.display = 'flex';
+  tampilkanFormPerpanjangan(nipUser, namaUser, trialHabis ? 'Trial 24 jam-mu sudah selesai ☕ Terima kasih sudah mencoba! Yuk lanjut traktir ngopi.' : 'Masa aktif akunmu baru saja berakhir ☕ Yuk perpanjang supaya bisa lanjut.', bayarAktifUser);
+}
+
+/* Sinkron otomatis dengan Sheet: bila admin mengubah Kredit / masa aktif / status akun, angka di aplikasi ikut berubah
+   (dicek tiap 2 menit selagi aplikasi terlihat, dan segera saat pengguna kembali membuka tab). */
+var timerSinkronAkun = null, sinkronTerakhir = 0, sedangSinkron = false;
+function sinkronAkun_(){
+  if(!currentUser || sedangSinkron || document.hidden) return;
+  sedangSinkron = true; sinkronTerakhir = Date.now();
+  var nip = currentUser.nip;
+  panggilAPI('statusAkun', { nip: nip, token: currentUser.token }).then(function(res){
+    sedangSinkron = false;
+    if(!currentUser || currentUser.nip !== nip) return;
+    if(res && res.status === 'success' && res.data){
+      var d = res.data, berubah = (currentUser.tanggalExpired || '') !== (d.tanggalExpired || '') || !!currentUser.gratis !== !!d.gratis || !!currentUser.trial !== !!d.trial;
+      currentUser.kredit = d.kredit; currentUser.tanggalExpired = d.tanggalExpired || '';
+      currentUser.gratis = !!d.gratis; currentUser.selaluAktif = !!d.selaluAktif; currentUser.trial = !!d.trial;
+      updateCreditBadge();
+      if(berubah){
+        mulaiPantauKedaluwarsaToken();
+        simpanPenandaPerangkat_({ nip: nip, tg: !!currentUser.telegramTerhubung, gratis: !!(d.gratis || d.selaluAktif), exp: d.tanggalExpired || '', habis: false });
+        if(typeof kopKabar_ === 'function') kopKabar_('Masa aktif akunmu diperbarui oleh admin ✔', false);
+      }
+    } else if(res && (res.expired || res.tidakAktif)){
+      akhiriMasaAktif_();
+    }
+  }).catch(function(){ sedangSinkron = false; });
+}
+function mulaiSinkronAkun_(){
+  clearInterval(timerSinkronAkun);
+  timerSinkronAkun = setInterval(sinkronAkun_, 2 * 60 * 1000);
+}
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && currentUser && Date.now() - sinkronTerakhir > 45000) sinkronAkun_();
+});
 
 /* =================== LOGOUT & AUTO-LOGOUT KARENA TIDAK AKTIF =================== */
 var BATAS_IDLE_MS = 30 * 60 * 1000; // 30 menit tanpa aktivitas -> otomatis keluar
@@ -641,7 +677,7 @@ function resetTimerIdle(){
 
 function handleLogout(otomatis){
   clearTimeout(timerIdle);
-  clearInterval(timerCekExpired);
+  clearInterval(timerCekExpired); clearInterval(timerSinkronAkun);
   SafeStorage.remove('suanggi_login');
   currentUser = null;
 
