@@ -313,7 +313,8 @@ function tampilkanFormDaftar(){
 
 /* Muncul otomatis saat token kedaluwarsa (dari login gagal atau saat sesi aktif berakhir) */
 function tampilkanFormPerpanjangan(nip, nama, pesan, bayarAktif){
-  var bp = document.getElementById('btnBayarPerp'); if(bp) bp.style.display = bayarAktif ? '' : 'none';
+  var pk = document.getElementById('perpPaketBox'); if(pk) pk.style.display = bayarAktif ? '' : 'none';
+  var pg = document.getElementById('perpGratisBox'); if(pg) pg.style.display = bayarAktif ? 'none' : '';
   document.getElementById('loginLoading').style.display = 'none';
   var tgG = document.getElementById('tgGerbangForm'); if(tgG) tgG.style.display = 'none';
   document.getElementById('loginForm').style.display = 'none';
@@ -344,7 +345,7 @@ function prosesAjukanPerpanjangan(){
 
   panggilAPI('ajukanPerpanjangan', { nip: nip, jumlahHariDiminta: hari }).then(function(res){
       if(res.status === 'success'){
-        var bayarMasihAda = document.getElementById('btnBayarPerp').style.display !== 'none';
+        var bayarMasihAda = document.getElementById('perpPaketBox').style.display !== 'none';
         tampilkanFormPerpanjangan(nip, '', res.message, bayarMasihAda);
         document.getElementById('perpanjanganHari').value = '';
         document.getElementById('perpanjanganTitle').style.color = '#6ffbbe';
