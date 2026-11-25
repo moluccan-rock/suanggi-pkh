@@ -3385,7 +3385,11 @@ function tampilkanFormTgGerbang(){
   document.getElementById('tgGerbangForm').style.display = 'block';
   document.getElementById('loginError').style.display = 'none';
 }
-function tutupFormTgBukaHarga(){ tampilkanFormLogin(); bukaHarga(); }
+function tutupFormTgBukaHarga(){
+  var n = ((document.getElementById('tgGerbangNip') || {}).value || '').replace(/\D/g, '');
+  tampilkanFormLogin(); bukaHarga();
+  var hn = document.getElementById('hargaNip'); if(hn && n && !hargaNipTersedia_()) hn.value = n; // NIP yang sudah diketik ikut terbawa
+}
 function prosesTgGerbang(){
   var nip = (document.getElementById('tgGerbangNip').value || '').trim();
   var hp = (document.getElementById('tgGerbangHp').value || '').trim();
@@ -3557,13 +3561,7 @@ function bukaBayar(dariPerpanjangan, nipManual, hariAwal){
   var sub = document.getElementById('bayarSub');
   var hpBox = document.getElementById('bayarHpBox'), hpErr = document.getElementById('bayarHpErr');
   if(hpErr) hpErr.textContent = '';
-  if(!token){
-    // Tanpa login: demi keamanan, wajib memasukkan No. HP yang didaftarkan (harus cocok dengan data pendaftaran)
-    sub.textContent = 'Untuk keamanan, masukkan No. HP yang kamu daftarkan di e-Suanggi.';
-    if(hpBox) hpBox.style.display = 'block';
-    var hi = document.getElementById('bayarHp'); if(hi){ hi.value = ''; setTimeout(function(){ try{ hi.focus(); }catch(e){} }, 50); }
-    return;
-  }
+  // Tanpa login pun cukup NIP (tidak lagi meminta No. HP): langsung tampilkan paket & QRIS.
   if(hpBox) hpBox.style.display = 'none';
   muatInfoBayar_();
 }
