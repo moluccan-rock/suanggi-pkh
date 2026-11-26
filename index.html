@@ -17,6 +17,7 @@
 
 <!-- Tombol Keluar mengambang: selalu terlihat di layar manapun (gerbang Pilih Jabatan, Step 2, Step 3),
      tidak seperti topbar yang sengaja disembunyikan saat gerbang Pilih Jabatan aktif. -->
+<button id="btnAdminPanel" type="button" class="btn-admin-floating" style="display:none;" title="Panel Admin" onclick="bukaAdmin()">&#128736;&#65039; Admin</button>
 <button id="btnLogoutFloating" type="button" class="btn-logout-floating" style="display:none;" title="Keluar dari aplikasi">
   ⏻ Keluar
 </button>
@@ -278,6 +279,19 @@
     <div id="wilErr" style="color:#b91c1c; font-size:12px; min-height:16px; margin:0 0 8px;"></div>
     <button type="button" id="wilBtn" class="btn btn-gold" style="width:100%; justify-content:center;" onclick="simpanWilayah()">Simpan</button>
     <button type="button" class="btn" style="width:100%; justify-content:center; margin-top:8px; background:transparent; border:1px solid #d1d5db; color:inherit;" onclick="tutupWilayah()">Nanti saja</button>
+  </div>
+</div>
+
+<!-- Panel Admin (hanya muncul untuk NIP di ADMIN_NIP; setiap aksi diperiksa ulang di server) -->
+<div id="adminOverlay" class="harga-overlay" style="display:none;" onclick="if(event.target===this)tutupAdmin()">
+  <div class="harga-card admin-card" role="dialog" aria-modal="true" aria-labelledby="adminJudul">
+    <button type="button" class="harga-x" onclick="tutupAdmin()" aria-label="Tutup">&times;</button>
+    <h2 id="adminJudul">&#128736;&#65039; Panel Admin</h2>
+    <div class="admin-chips" id="adminChips"></div>
+    <input type="search" id="adminCari" class="admin-cari" placeholder="Cari nama atau NIP…" autocomplete="off" oninput="adminCariTunda_()">
+    <div class="admin-info" id="adminInfo">Memuat…</div>
+    <div id="adminList"></div>
+    <button type="button" class="btn btn-ghost" id="adminLagi" style="display:none; width:100%; justify-content:center; margin-top:8px;" onclick="adminMuat_(false)">Muat lebih banyak</button>
   </div>
 </div>
 

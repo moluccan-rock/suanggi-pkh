@@ -521,7 +521,7 @@ function gagalWilayah_(sebelum, pesan){
 isiPilihanProvinsi_();
 
 function masukKeAplikasi(tahanGerbang){
-  muatKopTersimpan_();
+  muatKopTersimpan_(); terapkanTombolAdmin_();
   setTimeout(cekWilayah_, 1500);
   setTimeout(tampilkanBannerTelegram, 6000); // ajakan Telegram, tidak menghalangi apa pun
   terapkanModeTrial_();
@@ -619,7 +619,7 @@ function akhiriMasaAktif_(){
   clearInterval(timerCekExpired); clearInterval(timerSinkronAkun);
   SafeStorage.remove('suanggi_login');
   var nipUser = currentUser.nip, namaUser = currentUser.nama, trialHabis = !!currentUser.trial, bayarAktifUser = !!currentUser.bayarAktif;
-  currentUser = null;
+  currentUser = null; terapkanTombolAdmin_(); tutupAdmin();
   document.body.classList.add('role-locked');
   document.body.classList.remove('step-edit', 'step-rhk');
   document.getElementById('btnLogoutFloating').style.display = 'none';
@@ -680,7 +680,7 @@ function handleLogout(otomatis){
   clearTimeout(timerIdle);
   clearInterval(timerCekExpired); clearInterval(timerSinkronAkun);
   SafeStorage.remove('suanggi_login');
-  currentUser = null;
+  currentUser = null; terapkanTombolAdmin_(); tutupAdmin();
 
   // PERBAIKAN BUG: location.reload() TIDAK bekerja normal di dalam iframe
   // sandbox Google Apps Script — alih-alih memuat ulang aplikasi dengan
@@ -3534,6 +3534,101 @@ function terapkanModeTrial_(){
   });
 }
 
+
+
+/* =================== PANEL ADMIN (tampil hanya untuk akun admin; server memeriksa ulang di setiap aksi) =================== */
+var adminFilter = 'semua', adminHal = 0, adminTimerCari = null, adminKonfirmasi = null, adminSedang = false;
+var ADMIN_FILTER_LABEL = { semua: 'Semua', menunggu: 'Menunggu', trial: 'Trial', aktif: 'Aktif', kadaluwarsa: 'Kedaluwarsa', ditolak: 'Ditolak', nonaktif: 'Nonaktif' };
+function terapkanTombolAdmin_(){
+  var b = document.getElementById('btnAdminPanel');
+  if(b) b.style.display = (currentUser && currentUser.admin) ? '' : 'none';
+}
+function bukaAdmin(){
+  if(!currentUser || !currentUser.admin) return;
+  adminFilter = 'semua'; adminHal = 0;
+  var c = document.getElementById('adminCari'); if(c) c.value = '';
+  document.getElementById('adminOverlay').style.display = 'flex';
+  adminMuat_(true);
+}
+function tutupAdmin(){ var o = document.getElementById('adminOverlay'); if(o) o.style.display = 'none'; }
+function adminCariTunda_(){ clearTimeout(adminTimerCari); adminTimerCari = setTimeout(function(){ adminMuat_(true); }, 350); }
+function adminGantiFilter_(f){ adminFilter = f; adminMuat_(true); }
+function adminMuat_(ulang){
+  if(!currentUser || !currentUser.admin || adminSedang) return;
+  if(ulang) adminHal = 0; else adminHal++;
+  adminSedang = true;
+  var info = document.getElementById('adminInfo'); info.textContent = 'Memuat…';
+  panggilAPI('adminDaftar', { nip: currentUser.nip, token: currentUser.token, q: document.getElementById('adminCari').value || '', filter: adminFilter, hal: adminHal }).then(function(r){
+    adminSedang = false;
+    if(!r || r.status !== 'success'){ info.textContent = (r && r.message) || 'Gagal memuat.'; return; }
+    var chips = document.getElementById('adminChips'); chips.textContent = '';
+    Object.keys(ADMIN_FILTER_LABEL).forEach(function(k){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'admin-chip' + (k === adminFilter ? ' pilih' : '');
+      b.textContent = ADMIN_FILTER_LABEL[k] + ' ' + (r.hitung[k] || 0);
+      b.addEventListener('click', function(){ adminGantiFilter_(k); });
+      chips.appendChild(b);
+    });
+    info.textContent = r.total + ' akun' + (r.total > r.daftar.length + adminHal * 25 ? ' (menampilkan sebagian)' : '');
+    var list = document.getElementById('adminList'); if(ulang) list.textContent = '';
+    if(!r.daftar.length && ulang){ info.textContent = 'Tidak ada akun yang cocok.'; }
+    r.daftar.forEach(function(u){ list.appendChild(adminKartu_(u)); });
+    document.getElementById('adminLagi').style.display = r.adaLagi ? '' : 'none';
+  }).catch(function(){ adminSedang = false; info.textContent = 'Gagal terhubung ke server.'; });
+}
+function adminTgl_(iso){
+  if(!iso) return '-'; var d = new Date(iso); if(isNaN(d)) return '-';
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function adminKartu_(u){
+  var k = document.createElement('div'); k.className = 'admin-item';
+  var atas = document.createElement('div'); atas.className = 'atas';
+  var kiri = document.createElement('div');
+  var nm = document.createElement('div'); nm.className = 'nama'; nm.textContent = u.nama || '(tanpa nama)';
+  var sub = document.createElement('div'); sub.className = 'sub';
+  sub.textContent = u.nip + ' · ' + (u.hp || '-') + (u.tg ? ' · Telegram ✓' : ' · tanpa Telegram') + (u.exp ? ' · s.d. ' + adminTgl_(u.exp) : '') + (u.wilayah ? ' · ' + u.wilayah : '');
+  kiri.appendChild(nm); kiri.appendChild(sub);
+  var bd = document.createElement('span'); bd.className = 'admin-badge ' + u.kat; bd.textContent = u.selaluAktif ? 'Selalu Aktif' : (ADMIN_FILTER_LABEL[u.kat] || u.kat);
+  atas.appendChild(kiri); atas.appendChild(bd);
+  atas.addEventListener('click', function(){ k.classList.toggle('buka'); });
+  var aksi = document.createElement('div'); aksi.className = 'admin-aksi';
+  function tb(teks, kode, hari, bahaya){
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = teks; if(bahaya) b.className = 'bahaya';
+    b.addEventListener('click', function(ev){ ev.stopPropagation(); adminKlikAksi_(b, k, u, kode, hari, teks); });
+    aksi.appendChild(b);
+  }
+  if(u.admin){
+    var cat = document.createElement('div'); cat.className = 'admin-catatan'; cat.textContent = 'Akun admin: tidak ada aksi di sini.'; aksi.appendChild(cat);
+  } else if(u.kat === 'ditolak' || u.kat === 'nonaktif'){
+    var c2 = document.createElement('div'); c2.className = 'admin-catatan'; c2.textContent = 'Untuk mengaktifkan kembali, ubah Status di Sheet (atau /aktif di bot).'; aksi.appendChild(c2);
+  } else {
+    if(u.kat === 'menunggu') tb('🎁 Trial 24 jam', 'trial24', 0);
+    if(u.kat === 'trial' || u.kat === 'menunggu') tb('✨ Naikkan ke Aktif (7 hari)', 'naikkanTrial', 0);
+    tb('☕ +7 hari', 'tambah', 7); tb('☕ +30 hari', 'tambah', 30); tb('☕ +90 hari', 'tambah', 90);
+    if(u.kat === 'aktif' || u.kat === 'trial') tb('📨 Kirim token', 'kirimToken', 0);
+    if(!u.selaluAktif) tb('♾️ Selalu Aktif', 'selaluAktif', 0, true);
+    if(u.kat === 'menunggu' || u.kat === 'trial') tb('🚫 Tolak', 'tolak', 0, true);
+    if(u.kat !== 'menunggu') tb('⛔ Nonaktifkan', 'nonaktif', 0, true);
+  }
+  k.appendChild(atas); k.appendChild(aksi);
+  return k;
+}
+/* Konfirmasi dua ketukan (alert/confirm sering diblokir di peramban dalam aplikasi) */
+function adminKlikAksi_(btn, kartu, u, kode, hari, teks){
+  var kunci = u.nip + '|' + kode + '|' + hari;
+  if(!adminKonfirmasi || adminKonfirmasi.kunci !== kunci || Date.now() > adminKonfirmasi.sampai){
+    if(adminKonfirmasi && adminKonfirmasi.btn){ adminKonfirmasi.btn.classList.remove('siap'); adminKonfirmasi.btn.textContent = adminKonfirmasi.teks; }
+    adminKonfirmasi = { kunci: kunci, sampai: Date.now() + 5000, btn: btn, teks: teks };
+    btn.classList.add('siap'); btn.textContent = 'Ketuk lagi: ' + teks.replace(/^\S+\s/, '') + ' → ' + (u.nama || u.nip).split(' ')[0];
+    setTimeout(function(){ if(adminKonfirmasi && adminKonfirmasi.kunci === kunci){ btn.classList.remove('siap'); btn.textContent = teks; adminKonfirmasi = null; } }, 5200);
+    return;
+  }
+  adminKonfirmasi = null; btn.disabled = true; btn.textContent = 'Memproses…';
+  panggilAPI('adminAksi', { nip: currentUser.nip, token: currentUser.token, target: u.nip, aksi: kode, hari: hari }).then(function(r){
+    var ok = r && r.status === 'success';
+    kopKabar_((u.nama || u.nip) + ': ' + ((r && r.message) || 'gagal'), !ok);
+    adminMuat_(true);
+  }).catch(function(){ btn.disabled = false; btn.textContent = teks; kopKabar_('Gagal terhubung ke server.', true); });
+}
 
 /* =================== TRAKTIR NGOPI: bayar QRIS dari aplikasi (alternatif dari bot Telegram) =================== */
 var bayarKonteks = null, bayarPilih = 0, bayarData = null, bayarFotoData = null;

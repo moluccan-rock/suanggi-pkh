@@ -886,3 +886,29 @@ body.role-locked .tema-picker{display:flex;flex-direction:column;align-items:cen
 .paper.padat2 .p-sec p{margin-bottom:4px;}
 .paper.padat2 .p-sec h3{margin-top:8px;margin-bottom:3px;}
 .paper.padat2 .sign-block{margin-top:18px;}
+
+/* ===== Panel Admin ===== */
+.btn-admin-floating{position:fixed; top:12px; right:96px; z-index:9999; border:1px solid rgba(255,255,255,.35); background:rgba(15,23,42,.75); color:#fde68a; border-radius:999px; padding:7px 13px; font:600 12.5px/1 inherit; cursor:pointer; backdrop-filter:blur(6px);}
+.admin-card{max-width:560px; padding:22px 16px 18px;}
+.admin-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 10px;}
+.admin-chip{border:1.5px solid #e5e7eb; background:#fff; border-radius:999px; padding:5px 10px; font:600 12px inherit; color:#374151; cursor:pointer;}
+.admin-chip.pilih{background:#7f1d1d; border-color:#7f1d1d; color:#fff;}
+.admin-cari{width:100%; box-sizing:border-box; padding:10px; border:1px solid #d1d5db; border-radius:8px; font:inherit; color:#111827; background:#fff; margin-bottom:8px;}
+.admin-info{font-size:12px; color:#6b7280; margin:0 0 8px; min-height:16px;}
+.admin-item{border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; margin-bottom:8px; background:#fff;}
+.admin-item .atas{display:flex; justify-content:space-between; gap:8px; align-items:flex-start; cursor:pointer;}
+.admin-item .nama{font-weight:700; color:#111827; font-size:14px; word-break:break-word;}
+.admin-item .sub{font-size:12px; color:#6b7280; margin-top:2px; word-break:break-word;}
+.admin-badge{flex:none; border-radius:999px; padding:3px 9px; font:700 11px inherit; background:#e5e7eb; color:#374151;}
+.admin-badge.menunggu{background:#fef3c7; color:#92400e;} .admin-badge.trial{background:#ffedd5; color:#b45309;}
+.admin-badge.aktif{background:#dcfce7; color:#166534;} .admin-badge.kadaluwarsa{background:#fee2e2; color:#991b1b;}
+.admin-badge.ditolak,.admin-badge.nonaktif{background:#e5e7eb; color:#4b5563;}
+.admin-aksi{display:none; flex-wrap:wrap; gap:6px; margin-top:10px;}
+.admin-item.buka .admin-aksi{display:flex;}
+.admin-aksi button{border:1.5px solid #d6b4b4; background:#fff; color:#7f1d1d; border-radius:8px; padding:7px 10px; font:600 12px inherit; cursor:pointer;}
+.admin-aksi button.bahaya{border-color:#fca5a5; color:#b91c1c;}
+.admin-aksi button.siap{background:#fef3c7; border-color:#d97706; color:#92400e;}
+.admin-aksi button:disabled{opacity:.5;}
+.admin-catatan{font-size:12px; color:#6b7280; margin-top:8px;}
+@media (max-width:480px){ .btn-admin-floating{right:84px; top:10px;} }
+@media print{ #adminOverlay,.btn-admin-floating{display:none !important;} }
